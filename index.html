@@ -1,0 +1,2643 @@
+<!DOCTYPE html>
+<html lang="it" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Fausto Radio Web">
+    <title>Fausto Radio Web</title>
+    <!-- Caricamento Tailwind CSS e HLS.js -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.15/dist/hls.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        /* Tipografia di sistema e animazioni equalizzatore / onde audio */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            letter-spacing: -0.015em;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        @keyframes eq1 { 0%, 100% { height: 22%; } 50% { height: 95%; } }
+        @keyframes eq2 { 0%, 100% { height: 85%; } 50% { height: 28%; } }
+        @keyframes eq3 { 0%, 100% { height: 38%; } 50% { height: 100%; } }
+        @keyframes pulseWave {
+            0%, 100% { transform: scale(0.95); opacity: 0.45; }
+            50% { transform: scale(1.08); opacity: 0.85; }
+        }
+        @keyframes floatGlow {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-5px) rotate(1.5deg); }
+        }
+
+        .eq-bar-1 { animation: eq1 0.65s ease-in-out infinite; }
+        .eq-bar-2 { animation: eq2 0.5s ease-in-out infinite; }
+        .eq-bar-3 { animation: eq3 0.8s ease-in-out infinite; }
+        .wave-ring-1 { animation: pulseWave 2.1s ease-in-out infinite; }
+        .wave-ring-2 { animation: pulseWave 2.1s ease-in-out 0.65s infinite; }
+        .wave-paused { animation-play-state: paused !important; opacity: 0.15; }
+        .artwork-live { animation: floatGlow 3.6s ease-in-out infinite; }
+
+        .apple-vibrancy {
+            backdrop-filter: saturate(190%) blur(28px);
+            -webkit-backdrop-filter: saturate(190%) blur(28px);
+        }
+        .apple-squircle { border-radius: 22.5%; }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 12px); }
+    </style>
+</head>
+<body id="appBody" class="bg-[#050b1a] text-slate-100 min-h-screen flex flex-col md:flex-row transition-colors duration-300 selection:bg-sky-500/30">
+
+    <!-- SIDEBAR NATIVA macOS / iPadOS -->
+    <aside id="macSidebar" class="hidden md:flex md:w-64 lg:w-72 shrink-0 flex-col justify-between bg-[#081229]/90 apple-vibrancy border-r border-blue-400/15 p-4 sticky top-0 h-screen select-none">
+        <div>
+            <div class="flex items-center justify-between px-2 pt-1 pb-5">
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-[#ff5f57] inline-block"></span>
+                    <span class="w-3 h-3 rounded-full bg-[#febc2e] inline-block"></span>
+                    <span class="w-3 h-3 rounded-full bg-[#28c840] inline-block"></span>
+                </div>
+                <span class="text-[11px] font-semibold text-blue-200/60 tracking-wide">macOS Radio</span>
+            </div>
+
+            <div class="flex items-center gap-3 px-2 mb-5">
+                <button id="macLogoBtn" type="button" class="w-10 h-10 apple-squircle bg-[#0a84ff] shadow-lg flex items-center justify-center shrink-0 active:scale-90 transition" title="Fausto Radio Web">
+                    <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/></svg>
+                </button>
+                <div class="min-w-0">
+                    <div class="font-bold text-[15px] tracking-tight truncate">Fausto Radio</div>
+                    <div class="text-[11px] text-blue-200/70">FM & DAB+ Italia</div>
+                </div>
+            </div>
+
+            <div class="relative mb-5">
+                <svg class="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input id="macSearchInput" type="text" placeholder="Cerca emittente..." class="w-full pl-8 pr-3 py-1.5 rounded-lg bg-white/10 border border-white/10 text-xs text-white placeholder-zinc-400 focus:outline-none focus:border-sky-400">
+            </div>
+
+            <p class="px-2.5 text-[11px] font-semibold uppercase tracking-wider text-blue-200/60 mb-1.5">Libreria</p>
+            <nav id="macNavList" class="space-y-0.5">
+                <button type="button" data-nav="Tutte" class="mac-nav-btn w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition">
+                    <span>📻</span><span>Tutte le Radio</span>
+                </button>
+                <button type="button" data-nav="Preferiti" class="mac-nav-btn w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition">
+                    <span>♥</span><span>Preferiti</span>
+                </button>
+                <button type="button" data-nav="Nazionali" class="mac-nav-btn w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition">
+                    <span>🇮🇹</span><span>Nazionali</span>
+                </button>
+                <button type="button" data-nav="Pop & Hit" class="mac-nav-btn w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition">
+                    <span>🎵</span><span>Pop & Hit</span>
+                </button>
+                <button type="button" data-nav="News & Talk" class="mac-nav-btn w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition">
+                    <span>🎙️</span><span>News & Talk</span>
+                </button>
+                <button type="button" data-nav="Rock" class="mac-nav-btn w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition">
+                    <span>🎸</span><span>Rock</span>
+                </button>
+                <button type="button" data-nav="Dance" class="mac-nav-btn w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition">
+                    <span>🎧</span><span>Dance & Club</span>
+                </button>
+                <button type="button" data-nav="Classica & Jazz" class="mac-nav-btn w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition">
+                    <span>🎷</span><span>Classica & Jazz</span>
+                </button>
+                <button type="button" data-nav="Regionali" class="mac-nav-btn w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition">
+                    <span>📍</span><span>Regionali</span>
+                </button>
+            </nav>
+        </div>
+
+        <div class="space-y-2 pt-3 border-t border-white/10">
+            <button id="macAddRadioBtn" type="button" class="w-full py-2 px-3 rounded-lg bg-white/10 hover:bg-white/15 text-xs font-semibold text-white flex items-center justify-center gap-1.5 transition">
+                <span>+ Aggiungi Emittente</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- AREA PRINCIPALE -->
+    <div class="flex-1 flex flex-col min-w-0">
+
+        <!-- TOP BAR iOS LARGE TITLE + AZIONI -->
+        <header id="appHeader" class="sticky top-0 z-20 bg-[#050b1a]/85 apple-vibrancy border-b border-blue-400/15 px-4 sm:px-7 pt-3 pb-3 transition-colors duration-300">
+            <div class="max-w-5xl mx-auto">
+                <div class="flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <button id="brandLogoBtn" type="button" class="md:hidden w-9 h-9 apple-squircle bg-[#0a84ff] shadow flex items-center justify-center shrink-0 active:scale-90 transition" aria-label="Logo Fausto Radio Web">
+                            <svg id="brandIcon" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/></svg>
+                        </button>
+                        <div>
+                            <p id="iosDateSubtitle" class="text-[11px] font-semibold uppercase tracking-wider text-blue-200/70">DIRETTA STREAMING</p>
+                            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight leading-none">Fausto Radio</h1>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button id="loadMoreApiBtn" type="button" class="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/15 text-xs font-semibold transition active:scale-95">
+                            <span id="loadMoreText">+ Radio Locali</span>
+                        </button>
+
+                        <div class="relative">
+                            <button id="menuBtn" type="button" class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/15 flex items-center justify-center transition active:scale-90" title="Opzioni" aria-label="Opzioni">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+                            </button>
+
+                            <div id="appMenu" class="hidden absolute right-0 top-11 w-64 rounded-2xl bg-zinc-900/95 apple-vibrancy border border-white/15 shadow-2xl p-2 z-50 text-white max-h-[80vh] overflow-y-auto">
+                                <button id="addRadioMenuBtn" type="button" class="w-full text-left px-3 py-2 rounded-xl hover:bg-white/10 text-xs font-semibold flex items-center gap-2">
+                                    <span>+ Aggiungi Emittente</span>
+                                </button>
+                                <button id="trashMenuBtn" type="button" class="w-full text-left px-3 py-2 rounded-xl hover:bg-white/10 text-xs font-semibold flex items-center justify-between gap-2 mt-0.5">
+                                    <span class="flex items-center gap-2">
+                                        <svg class="w-3.5 h-3.5 text-rose-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                                        <span>Cestino Emittenti</span>
+                                    </span>
+                                    <span id="trashMenuBadge" class="px-1.5 py-0.5 rounded-full bg-white/10 text-[10px] font-bold text-zinc-300">0</span>
+                                </button>
+                                <div class="h-px bg-white/10 my-1.5"></div>
+                                <div class="px-3 py-1.5">
+                                    <p class="text-[11px] font-semibold text-zinc-400 mb-2">Colore Accento</p>
+                                    <div id="themeSwatches" class="grid grid-cols-4 gap-2">
+                                        <button type="button" data-theme="rose" class="w-7 h-7 rounded-full bg-[#fa2d48] border-2 border-transparent shadow transition hover:scale-110 mx-auto" title="Apple Music Rosso"></button>
+                                        <button type="button" data-theme="sky" class="w-7 h-7 rounded-full bg-[#0a84ff] border-2 border-white shadow transition hover:scale-110 mx-auto" title="Blu iOS"></button>
+                                        <button type="button" data-theme="emerald" class="w-7 h-7 rounded-full bg-[#30d158] border-2 border-transparent shadow transition hover:scale-110 mx-auto" title="Verde iOS"></button>
+                                        <button type="button" data-theme="amber" class="w-7 h-7 rounded-full bg-[#ff9f0a] border-2 border-transparent shadow transition hover:scale-110 mx-auto" title="Arancio iOS"></button>
+                                        <button type="button" data-theme="violet" class="w-7 h-7 rounded-full bg-[#bf5af2] border-2 border-transparent shadow transition hover:scale-110 mx-auto" title="Viola iOS"></button>
+                                        <button type="button" data-theme="cyan" class="w-7 h-7 rounded-full bg-[#64d2ff] border-2 border-transparent shadow transition hover:scale-110 mx-auto" title="Azzurro Ciano"></button>
+                                        <button type="button" data-theme="fuchsia" class="w-7 h-7 rounded-full bg-[#ff375f] border-2 border-transparent shadow transition hover:scale-110 mx-auto" title="Rosa Ciliegia"></button>
+                                        <button type="button" data-theme="indigo" class="w-7 h-7 rounded-full bg-[#5e5ce6] border-2 border-transparent shadow transition hover:scale-110 mx-auto" title="Indaco macOS"></button>
+                                        <button type="button" data-theme="sunset" class="w-7 h-7 rounded-full bg-gradient-to-tr from-rose-500 to-amber-400 border-2 border-transparent shadow transition hover:scale-110 mx-auto" title="Sfumatura Tramonto"></button>
+                                        <button type="button" data-theme="aurora" class="w-7 h-7 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-500 border-2 border-transparent shadow transition hover:scale-110 mx-auto" title="Sfumatura Aurora"></button>
+                                        <button type="button" data-theme="berry" class="w-7 h-7 rounded-full bg-gradient-to-tr from-fuchsia-500 to-indigo-500 border-2 border-transparent shadow transition hover:scale-110 mx-auto" title="Sfumatura Berry"></button>
+                                        <button type="button" data-theme="gold" class="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-400 to-yellow-600 border-2 border-transparent shadow transition hover:scale-110 mx-auto" title="Sfumatura Oro"></button>
+                                    </div>
+                                </div>
+                                <div class="h-px bg-white/10 my-1.5"></div>
+                                <div class="px-3 py-1.5">
+                                    <p class="text-[11px] font-semibold text-zinc-400 mb-2">Sfondo & Sfumature</p>
+                                    <div id="bgSwatches" class="grid grid-cols-2 gap-1.5">
+                                        <button type="button" data-bg="dark" class="px-2 py-1.5 rounded-lg bg-black border border-white/20 text-white text-[11px] font-semibold transition">Scuro OLED</button>
+                                        <button type="button" data-bg="light" class="px-2 py-1.5 rounded-lg bg-[#f2f2f7] border border-black/15 text-zinc-900 text-[11px] font-semibold transition">Chiaro iOS</button>
+                                        <button type="button" data-bg="navy" class="px-2 py-1.5 rounded-lg bg-[#0c1938] border border-blue-400/20 text-blue-100 text-[11px] font-semibold transition">Blu Notte</button>
+                                        <button type="button" data-bg="carbon" class="px-2 py-1.5 rounded-lg bg-zinc-800 border border-white/15 text-zinc-200 text-[11px] font-semibold transition">Grafite</button>
+                                        <button type="button" data-bg="sunsetGrad" class="px-2 py-1.5 rounded-lg bg-gradient-to-r from-rose-950 via-amber-950 to-zinc-950 border border-amber-400/25 text-amber-100 text-[11px] font-semibold transition">Tramonto</button>
+                                        <button type="button" data-bg="oceanGrad" class="px-2 py-1.5 rounded-lg bg-gradient-to-r from-cyan-950 via-sky-950 to-indigo-950 border border-cyan-400/25 text-cyan-100 text-[11px] font-semibold transition">Oceano</button>
+                                        <button type="button" data-bg="violetGrad" class="px-2 py-1.5 rounded-lg bg-gradient-to-r from-purple-950 via-fuchsia-950 to-slate-950 border border-fuchsia-400/25 text-fuchsia-100 text-[11px] font-semibold transition">Neon Viola</button>
+                                        <button type="button" data-bg="emeraldGrad" class="px-2 py-1.5 rounded-lg bg-gradient-to-r from-emerald-950 via-teal-950 to-zinc-950 border border-emerald-400/25 text-emerald-100 text-[11px] font-semibold transition">Smeraldo</button>
+                                    </div>
+                                </div>
+                                <div id="downloadSection" class="hidden">
+                                    <div class="h-px bg-white/10 my-1.5"></div>
+                                    <button id="downloadHtmlBtn" type="button" class="w-full text-left px-3 py-2 rounded-xl hover:bg-white/10 text-xs font-semibold text-zinc-200 flex items-center gap-2">
+                                        <span>Scarica FaustoRadio.html</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Barra di ricerca nascosta all'avvio: compare solo quando si preme Cerca in basso -->
+                <div id="mobileSearchWrap" class="hidden mt-3">
+                    <div class="relative">
+                        <svg class="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <input id="searchInput" type="text" placeholder="Cerca emittenti, città o generi..." class="w-full pl-9 pr-16 py-2.5 rounded-xl bg-white/10 text-[15px] placeholder-zinc-400 focus:outline-none">
+                        <button id="clearSearchBtn" type="button" class="hidden absolute right-14 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-zinc-500/60 text-white text-[10px] flex items-center justify-center font-bold" title="Pulisci">✕</button>
+                        <button id="closeSearchBarBtn" type="button" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-zinc-400 hover:text-white px-1.5 py-0.5">Chiudi</button>
+                    </div>
+                </div>
+
+                <div id="categoryBar" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar mt-3 pb-0.5"></div>
+            </div>
+        </header>
+
+        <!-- GRIGLIA EMITTENTI: LISTA SCHEDE ORIZZONTALI -->
+        <main class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-7 pt-5 pb-44 md:pb-28">
+            <div class="flex items-center justify-between mb-3.5">
+                <div class="flex items-center gap-2">
+                    <h2 id="sectionTitle" class="font-bold text-lg sm:text-xl tracking-tight">In Onda Adesso</h2>
+                    <span id="stationCount" class="px-2 py-0.5 rounded-full bg-white/10 text-blue-200/75 text-xs font-semibold">0</span>
+                </div>
+            </div>
+
+            <div id="stationsGrid" class="flex flex-col gap-3"></div>
+        </main>
+    </div>
+
+    <!-- BARRA IN BASSO STILE iOS APPLE MUSIC -->
+    <div class="fixed bottom-0 inset-x-0 md:left-64 lg:left-72 z-30 pointer-events-none">
+        <div class="px-3 sm:px-6 pb-2">
+            <div id="miniPlayerBar" class="max-w-4xl mx-auto pointer-events-auto rounded-2xl bg-[#0c1938]/90 apple-vibrancy border border-blue-400/20 shadow-2xl shadow-black/60 px-3 py-2 transition-colors duration-300">
+                <div class="flex items-center justify-between gap-3">
+                    <div id="openFullPlayerArea" class="flex items-center gap-3 min-w-0 flex-1 cursor-pointer">
+                        <div id="playerLogo" class="w-11 h-11 rounded-xl bg-gradient-to-br from-zinc-700 to-zinc-800 flex items-center justify-center font-bold text-xs text-white shrink-0 shadow">
+                            FM
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-1.5">
+                                <h3 id="playerTitle" class="font-semibold text-[14px] truncate">Non in riproduzione</h3>
+                                <span id="liveBadge" class="hidden items-center gap-1 px-1.5 py-0.5 rounded-full bg-[#0a84ff]/20 text-[#0a84ff] text-[9px] font-bold">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-[#0a84ff] animate-pulse"></span> LIVE
+                                </span>
+                            </div>
+                            <p id="playerSubtitle" class="text-xs text-blue-200/70 truncate">Tocca una stazione per iniziare</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button id="prevBtn" type="button" class="w-9 h-9 rounded-full hover:bg-white/10 flex items-center justify-center transition active:scale-90" title="Precedente">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="2.2"/></svg>
+                        </button>
+                        <button id="playPauseBtn" type="button" class="w-9 h-9 rounded-full hover:bg-white/10 flex items-center justify-center transition active:scale-90" title="Play / Pausa">
+                            <svg id="playIcon" class="w-5 h-5 ml-0.5" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            <svg id="pauseIcon" class="w-5 h-5 hidden" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                        </button>
+                        <button id="nextBtn" type="button" class="w-9 h-9 rounded-full hover:bg-white/10 flex items-center justify-center transition active:scale-90" title="Successiva">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2.2"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB BAR NATIVA iOS -->
+        <nav id="iosTabBar" class="md:hidden pointer-events-auto bg-[#081229]/90 apple-vibrancy border-t border-blue-400/15 px-6 pt-2 pb-safe flex items-center justify-around">
+            <button type="button" data-tab="radio" class="ios-tab-btn flex flex-col items-center gap-0.5 text-[#0a84ff] transition">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/></svg>
+                <span class="text-[10px] font-semibold">Radio</span>
+            </button>
+            <button type="button" data-tab="preferiti" class="ios-tab-btn flex flex-col items-center gap-0.5 text-zinc-400 transition">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                <span class="text-[10px] font-semibold">Preferiti</span>
+            </button>
+            <button type="button" data-tab="cerca" class="ios-tab-btn flex flex-col items-center gap-0.5 text-zinc-400 transition">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <span class="text-[10px] font-semibold">Cerca</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- SCHERMATA NOW PLAYING STILE APPLE MUSIC -->
+    <div id="fullPlayerOverlay" class="hidden fixed inset-0 z-40 bg-gradient-to-b from-[#102454] via-[#071126] to-[#040914] text-white flex flex-col justify-between px-6 pt-3 pb-8 overflow-y-auto transition-colors duration-300">
+        <div class="max-w-md w-full mx-auto">
+            <button id="closeFullPlayerBtn" type="button" class="w-full py-2 flex flex-col items-center justify-center group" title="Chiudi">
+                <span class="w-10 h-1.5 rounded-full bg-white/30 group-hover:bg-white/50 transition"></span>
+            </button>
+        </div>
+
+        <div class="max-w-md w-full mx-auto my-auto flex flex-col items-center">
+            <!-- Copertina Dinamica con Anelli Onde Audio -->
+            <div class="relative flex items-center justify-center w-72 h-72 sm:w-80 sm:h-80">
+                <div id="waveRingOuter" class="wave-ring-2 wave-paused absolute inset-0 rounded-full border-2 border-white/25 pointer-events-none"></div>
+                <div id="waveRingInner" class="wave-ring-1 wave-paused absolute inset-4 rounded-full border border-white/35 pointer-events-none"></div>
+
+                <div id="artworkCard" class="w-60 h-60 sm:w-68 sm:h-68 rounded-3xl bg-gradient-to-br from-sky-500 to-blue-700 shadow-2xl shadow-black/80 flex flex-col items-center justify-between p-5 relative overflow-hidden transition-transform duration-500 scale-95">
+                    <div class="absolute inset-0 bg-gradient-to-tr from-black/30 via-transparent to-white/20 pointer-events-none"></div>
+                    <div class="w-full flex items-center justify-between z-10">
+                        <span class="px-2.5 py-0.5 rounded-full bg-black/30 text-[10px] font-bold tracking-wider uppercase text-white/90">STEREO</span>
+                        <div id="playerLiveBars" class="flex items-end gap-0.5 h-4 opacity-40">
+                            <span class="w-1 bg-white rounded-full eq-bar-1"></span>
+                            <span class="w-1 bg-white rounded-full eq-bar-2"></span>
+                            <span class="w-1 bg-white rounded-full eq-bar-3"></span>
+                            <span class="w-1 bg-white rounded-full eq-bar-2"></span>
+                            <span class="w-1 bg-white rounded-full eq-bar-1"></span>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col items-center justify-center z-10 my-auto">
+                        <span id="artworkAbbr" class="font-black text-4xl sm:text-5xl text-white tracking-tight drop-shadow-md">FM</span>
+                        <span id="fpFrequency" class="mt-2 px-3 py-1 rounded-full bg-black/30 text-white/90 text-[11px] font-semibold tracking-wider uppercase">FM / DAB+ RDS</span>
+                    </div>
+
+                    <!-- Spettro dinamico inferiore -->
+                    <div id="fpSpectrumBar" class="w-full flex items-end justify-between gap-1 h-7 px-1 z-10">
+                        <span class="flex-1 bg-white/70 rounded-full h-2 transition-all duration-300"></span>
+                        <span class="flex-1 bg-white/70 rounded-full h-4 transition-all duration-300"></span>
+                        <span class="flex-1 bg-white/70 rounded-full h-6 transition-all duration-300"></span>
+                        <span class="flex-1 bg-white/70 rounded-full h-3 transition-all duration-300"></span>
+                        <span class="flex-1 bg-white/70 rounded-full h-5 transition-all duration-300"></span>
+                        <span class="flex-1 bg-white/70 rounded-full h-7 transition-all duration-300"></span>
+                        <span class="flex-1 bg-white/70 rounded-full h-4 transition-all duration-300"></span>
+                        <span class="flex-1 bg-white/70 rounded-full h-6 transition-all duration-300"></span>
+                        <span class="flex-1 bg-white/70 rounded-full h-3 transition-all duration-300"></span>
+                        <span class="flex-1 bg-white/70 rounded-full h-2 transition-all duration-300"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-full flex items-center justify-between gap-3 mt-6">
+                <div class="min-w-0 flex-1">
+                    <h2 id="fpStationName" class="text-xl sm:text-2xl font-bold tracking-tight text-white truncate">Emittente Radio</h2>
+                    <p id="fpStationCity" class="text-sm text-blue-200/70 truncate mt-0.5">Italia • Diretta Live</p>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button id="fpDeleteBtn" type="button" class="w-10 h-10 rounded-full bg-white/10 hover:bg-rose-500/20 flex items-center justify-center text-zinc-300 hover:text-rose-400 shrink-0 transition active:scale-90" title="Elimina emittente">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                    </button>
+                    <button id="fpFavBtn" type="button" class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/15 flex items-center justify-center text-zinc-300 shrink-0 transition active:scale-90" title="Aggiungi ai preferiti">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="w-full mt-5 bg-white/10 rounded-2xl p-3.5 border border-blue-300/15">
+                <div class="flex items-center justify-between text-[11px] mb-1">
+                    <span id="fpStatusText" class="font-bold tracking-wider uppercase text-[#0a84ff]">● IN DIRETTA</span>
+                    <span id="rdsClock" class="text-zinc-400 font-semibold tabular-nums">12:00</span>
+                </div>
+                <p id="rdsProgram" class="text-sm font-semibold text-white truncate">Diretta Streaming</p>
+                <p id="rdsTrack" class="text-xs text-zinc-300 truncate mt-0.5">Sincronizzazione RDS...</p>
+            </div>
+
+            <div class="w-full flex items-center justify-center gap-10 mt-7">
+                <button id="fpPrevBtn" type="button" class="p-3 text-white hover:opacity-75 transition active:scale-90" title="Precedente">
+                    <svg class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="2.5"/></svg>
+                </button>
+                <button id="fpPlayPauseBtn" type="button" class="w-[72px] h-[72px] rounded-full bg-white text-black flex items-center justify-center shadow-xl transition active:scale-90" title="Play / Pausa">
+                    <svg id="fpPlayIcon" class="w-8 h-8 ml-1" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    <svg id="fpPauseIcon" class="w-8 h-8 hidden" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4.2" height="16" rx="1"/><rect x="13.8" y="4" width="4.2" height="16" rx="1"/></svg>
+                </button>
+                <button id="fpNextBtn" type="button" class="p-3 text-white hover:opacity-75 transition active:scale-90" title="Successiva">
+                    <svg class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2.5"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="h-2"></div>
+    </div>
+
+    <!-- MODALE AGGIUNGI RADIO -->
+    <div id="addRadioModal" class="hidden fixed inset-0 z-50 bg-black/70 apple-vibrancy flex items-center justify-center p-4">
+        <div class="bg-zinc-900 border border-white/15 rounded-3xl w-full max-w-md p-5 shadow-2xl text-white">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-base">Nuova Emittente</h3>
+                <button id="closeAddModal" type="button" class="w-7 h-7 rounded-full bg-white/10 text-zinc-300 text-xs font-bold flex items-center justify-center">✕</button>
+            </div>
+            <form id="addRadioForm" class="space-y-3.5">
+                <div>
+                    <label class="block text-xs font-medium text-zinc-400 mb-1">Nome Emittente</label>
+                    <input id="customName" type="text" required placeholder="Es. Radio Locale" class="w-full px-3.5 py-2.5 rounded-xl bg-white/10 text-sm text-white focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-zinc-400 mb-1">URL Stream (MP3 / AAC / M3U8)</label>
+                    <input id="customUrl" type="url" required placeholder="https://..." class="w-full px-3.5 py-2.5 rounded-xl bg-white/10 text-sm text-white focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-zinc-400 mb-1">Genere</label>
+                    <select id="customGenre" class="w-full px-3.5 py-2.5 rounded-xl bg-zinc-800 text-sm text-white focus:outline-none">
+                        <option value="Pop & Hit">Pop & Hit</option>
+                        <option value="News & Talk">News & Talk</option>
+                        <option value="Rock">Rock</option>
+                        <option value="Dance">Dance</option>
+                        <option value="Classica & Jazz">Classica & Jazz</option>
+                        <option value="Regionali">Regionali</option>
+                    </select>
+                </div>
+                <div class="flex items-center justify-end gap-2 pt-2">
+                    <button id="cancelAddModal" type="button" class="px-4 py-2 rounded-full bg-white/10 text-zinc-300 text-xs font-semibold">Annulla</button>
+                    <button id="saveCustomBtn" type="submit" class="px-4 py-2 rounded-full bg-[#0a84ff] text-white text-xs font-bold">Salva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODALE CESTINO EMITTENTI -->
+    <div id="trashModal" class="hidden fixed inset-0 z-50 bg-black/70 apple-vibrancy flex items-center justify-center p-4">
+        <div class="bg-zinc-900 border border-white/15 rounded-3xl w-full max-w-md p-5 shadow-2xl text-white flex flex-col max-h-[82vh]">
+            <div class="flex items-center justify-between mb-3 shrink-0">
+                <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-rose-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                    <h3 class="font-bold text-base">Cestino Emittenti</h3>
+                </div>
+                <button id="closeTrashModal" type="button" class="w-7 h-7 rounded-full bg-white/10 text-zinc-300 text-xs font-bold flex items-center justify-center">✕</button>
+            </div>
+            <p class="text-xs text-zinc-400 mb-3 shrink-0">Qui trovi le emittenti eliminate. Puoi ripristinarle quando vuoi.</p>
+            <div id="trashListContainer" class="flex-1 overflow-y-auto space-y-2 pr-0.5 min-h-[120px]"></div>
+            <div class="flex items-center justify-between gap-2 pt-4 mt-3 border-t border-white/10 shrink-0">
+                <button id="restoreAllTrashBtn" type="button" class="px-3.5 py-2 rounded-full bg-[#0a84ff] hover:bg-sky-500 text-white text-xs font-bold transition disabled:opacity-40">Ripristina tutte</button>
+                <button id="doneTrashModalBtn" type="button" class="px-4 py-2 rounded-full bg-white/10 hover:bg-white/15 text-zinc-200 text-xs font-semibold transition">Chiudi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-zinc-900/95 apple-vibrancy border border-white/15 text-white text-xs font-semibold shadow-2xl whitespace-nowrap"></div>
+
+    <audio id="audioPlayer" preload="none" playsinline></audio>
+
+    <script>
+        const audio = document.getElementById('audioPlayer');
+        const categoryBar = document.getElementById('categoryBar');
+        const stationsGrid = document.getElementById('stationsGrid');
+        const sectionTitle = document.getElementById('sectionTitle');
+        const stationCount = document.getElementById('stationCount');
+        const searchInput = document.getElementById('searchInput');
+        const macSearchInput = document.getElementById('macSearchInput');
+        const mobileSearchWrap = document.getElementById('mobileSearchWrap');
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+        const toastEl = document.getElementById('toast');
+
+        let toastTimer = null;
+        let spectrumTimer = null;
+        let metadataPollTimer = null;
+        let metadataAbortCtrl = null;
+
+        function showToast(msg) {
+            toastEl.textContent = msg;
+            toastEl.classList.remove('hidden');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => toastEl.classList.add('hidden'), 3000);
+        }
+
+        const RDS_PROGRAMS = {
+            rai1: { program: 'GR1 • Radio Anch\'io', fm: '89.7 FM • DAB+ RAI', slogans: ['Rai Radio 1 - L\'informazione in diretta', 'Giornale Radio Rai • Attualità'] },
+            rai2: { program: 'Il Ruggito del Coniglio / Caterpillar', fm: '91.7 FM • DAB+ RAI', slogans: ['Rai Radio 2 - Musica e Intrattenimento', 'Solo il meglio della musica'] },
+            rai3: { program: 'Prima Pagina • Concerto del Mattino', fm: '93.7 FM • DAB+ RAI', slogans: ['Rai Radio 3 - Cultura e Musica Classica', 'Dal vivo dagli auditorium Rai'] },
+            isoradio: { program: 'Onda Verde • Viabilità Live', fm: '103.3 FM • AUTOSTRADE', slogans: ['Rai Isoradio 103.3 - Bollettino traffico e meteo'] },
+            rtl1025: { program: 'The Flight / W l\'Italia', fm: '102.5 FM • RADIODAB', slogans: ['RTL 102.5 - Very Normal People'] },
+            rds: { program: 'Tutti Pazzi per RDS', fm: '103.0 FM • DAB+', slogans: ['RDS 100% Grandi Successi'] },
+            deejay: { program: 'Deejay Chiama Italia', fm: '107.0 FM • DAB+', slogans: ['Radio Deejay - One Nation One Station'] },
+            radio105: { program: 'Lo Zoo di 105 / Tutto Esaurito', fm: '99.1 FM • DAB+', slogans: ['Radio 105 - Proud to be Different'] },
+            virgin: { program: 'Buongiorno Dr. Feelgood / Revolver', fm: '104.5 FM • DAB+', slogans: ['Virgin Radio - Style Rock'] },
+            r101: { program: 'La Banda di R101', fm: '101.2 FM • DAB+', slogans: ['R101 - Enjoy the Music'] },
+            radio24: { program: '24 Mattino / La Zanzara', fm: '104.8 FM • DAB+', slogans: ['Radio 24 - Il Sole 24 Ore'] },
+            kisskiss: { program: 'Pippo Pelo Show', fm: '97.2 FM • DAB+', slogans: ['Radio Kiss Kiss - Play Everywhere'] },
+            radioitalia: { program: 'Radio Italia Live', fm: '106.7 FM • DAB+', slogans: ['Radio Italia Solo Musica Italiana'] },
+            m2o: { program: 'Albertino Everyday', fm: '90.3 FM • DAB+', slogans: ['Radio m2o - Più Musica'] },
+            capital: { program: 'Capital Records', fm: '95.8 FM • DAB+', slogans: ['Radio Capital - Solo Classici'] },
+            subasio: { program: 'Per un\'ora d\'amore', fm: '94.5 FM • DAB+', slogans: ['Radio Subasio - La musica che ti emoziona'] },
+            freccia: { program: 'Nessun Dorma', fm: '98.3 FM • DAB+', slogans: ['Radiofreccia - Libera come noi'] },
+            montecarlo: { program: 'Monte Carlo Nights', fm: '105.5 FM • DAB+', slogans: ['Radio Monte Carlo - Musica di Gran Classe'] },
+            zeta: { program: 'Generazione Zeta', fm: '102.8 FM • DAB+', slogans: ['Radio Zeta - Generazione Futuro'] },
+            sportiva: { program: 'Microfono Aperto • Sport Live', fm: '96.3 FM • DAB+', slogans: ['Radio Sportiva - La radio dello sport'] },
+            margherita: { program: 'La Musica Italiana', fm: '94.8 FM • DAB+', slogans: ['Radio Margherita - Solo musica italiana'] },
+            norba: { program: 'Battiti Live / Radionorba', fm: '98.0 FM • SUD', slogans: ['Radionorba - Il cuore del Sud'] },
+            latte: { program: 'LatteMiele Insieme', fm: '99.5 FM • DAB+', slogans: ['Radio LatteMiele - La musica italiana'] },
+            puntoradio: { program: 'Punto Radio Diretta', fm: '91.1 FM • TOSCANA', slogans: ['Punto Radio - In onda dalla Toscana'] },
+            lifegate: { program: 'Eco Logica • Sostenibilità', fm: '105.1 FM • DAB+', slogans: ['LifeGate Radio - Persone e Pianeta'] },
+            ibiza: { program: 'Ibiza Sound Live', fm: 'WEB • CLUB', slogans: ['Radio Ibiza - Suoni dal Mediterraneo'] }
+        };
+
+        function safeGetStorage(key, fallback) {
+            try {
+                const raw = localStorage.getItem(key);
+                if (raw !== null) return JSON.parse(raw);
+            } catch (e) {}
+            try {
+                const match = document.cookie.split('; ').find(row => row.startsWith(encodeURIComponent(key) + '='));
+                if (match) return JSON.parse(decodeURIComponent(match.split('=')[1]));
+            } catch (e) {}
+            try {
+                if (window.name && window.name.startsWith('FAUSTO_RADIO_STATE:')) {
+                    const parsed = JSON.parse(window.name.slice('FAUSTO_RADIO_STATE:'.length));
+                    if (parsed && Object.prototype.hasOwnProperty.call(parsed, key)) return parsed[key];
+                }
+            } catch (e) {}
+            return fallback;
+        }
+
+        function safeSetStorage(key, value) {
+            const serialized = JSON.stringify(value);
+            try { localStorage.setItem(key, serialized); } catch (e) {}
+            try {
+                document.cookie = `${encodeURIComponent(key)}=${encodeURIComponent(serialized)}; path=/; max-age=31536000; SameSite=Lax`;
+            } catch (e) {}
+            try {
+                let bag = {};
+                if (window.name && window.name.startsWith('FAUSTO_RADIO_STATE:')) {
+                    bag = JSON.parse(window.name.slice('FAUSTO_RADIO_STATE:'.length)) || {};
+                }
+                bag[key] = value;
+                window.name = 'FAUSTO_RADIO_STATE:' + JSON.stringify(bag);
+            } catch (e) {}
+        }
+
+        const CATEGORIES = ['Tutte', 'Preferiti', 'Nazionali', 'Pop & Hit', 'News & Talk', 'Rock', 'Dance', 'Classica & Jazz', 'Regionali'];
+
+        const THEMES = {
+            rose: { pillBg: 'bg-[#fa2d48]', pillText: 'text-white', badgeBg: 'bg-rose-500/20', badgeText: 'text-rose-400', tabActive: 'text-[#fa2d48]' },
+            sky: { pillBg: 'bg-[#0a84ff]', pillText: 'text-white', badgeBg: 'bg-sky-500/20', badgeText: 'text-sky-400', tabActive: 'text-[#0a84ff]' },
+            emerald: { pillBg: 'bg-[#30d158]', pillText: 'text-black', badgeBg: 'bg-emerald-500/20', badgeText: 'text-emerald-400', tabActive: 'text-[#30d158]' },
+            amber: { pillBg: 'bg-[#ff9f0a]', pillText: 'text-black', badgeBg: 'bg-amber-500/20', badgeText: 'text-amber-400', tabActive: 'text-[#ff9f0a]' },
+            violet: { pillBg: 'bg-[#bf5af2]', pillText: 'text-white', badgeBg: 'bg-purple-500/20', badgeText: 'text-purple-400', tabActive: 'text-[#bf5af2]' },
+            cyan: { pillBg: 'bg-[#64d2ff]', pillText: 'text-black', badgeBg: 'bg-cyan-500/20', badgeText: 'text-cyan-400', tabActive: 'text-[#64d2ff]' },
+            fuchsia: { pillBg: 'bg-[#ff375f]', pillText: 'text-white', badgeBg: 'bg-pink-500/20', badgeText: 'text-pink-400', tabActive: 'text-[#ff375f]' },
+            indigo: { pillBg: 'bg-[#5e5ce6]', pillText: 'text-white', badgeBg: 'bg-indigo-500/20', badgeText: 'text-indigo-400', tabActive: 'text-[#5e5ce6]' },
+            sunset: { pillBg: 'bg-gradient-to-r from-rose-500 to-amber-500', pillText: 'text-white', badgeBg: 'bg-amber-500/20', badgeText: 'text-amber-300', tabActive: 'text-amber-400' },
+            aurora: { pillBg: 'bg-gradient-to-r from-emerald-400 to-cyan-500', pillText: 'text-black', badgeBg: 'bg-emerald-500/20', badgeText: 'text-emerald-300', tabActive: 'text-emerald-400' },
+            berry: { pillBg: 'bg-gradient-to-r from-fuchsia-500 to-indigo-500', pillText: 'text-white', badgeBg: 'bg-fuchsia-500/20', badgeText: 'text-fuchsia-300', tabActive: 'text-fuchsia-400' },
+            gold: { pillBg: 'bg-gradient-to-r from-amber-400 to-yellow-600', pillText: 'text-black', badgeBg: 'bg-yellow-500/20', badgeText: 'text-yellow-300', tabActive: 'text-yellow-400' }
+        };
+
+        const BG_THEMES = {
+            dark: {
+                isLight: false,
+                bodyClass: 'bg-black text-zinc-100 selection:bg-white/20',
+                headerClass: 'bg-black/85 border-white/10',
+                sidebarClass: 'bg-zinc-950/90 border-white/10',
+                miniClass: 'bg-zinc-900/90 border-white/15',
+                tabClass: 'bg-zinc-950/90 border-white/10',
+                pillInactive: 'bg-white/10 text-zinc-300 hover:bg-white/15',
+                mutedText: 'text-zinc-400',
+                fullOverlay: 'from-zinc-900 via-zinc-950 to-black'
+            },
+            light: {
+                isLight: true,
+                bodyClass: 'bg-[#f2f2f7] text-zinc-900 selection:bg-sky-500/20',
+                headerClass: 'bg-[#f2f2f7]/85 border-black/10',
+                sidebarClass: 'bg-white/90 border-black/10',
+                miniClass: 'bg-white/90 border-black/10',
+                tabClass: 'bg-white/90 border-black/10',
+                pillInactive: 'bg-black/5 text-zinc-700 hover:bg-black/10',
+                mutedText: 'text-zinc-500',
+                fullOverlay: 'from-sky-100 via-[#f2f2f7] to-zinc-200'
+            },
+            navy: {
+                isLight: false,
+                bodyClass: 'bg-[#050b1a] text-slate-100 selection:bg-sky-500/30',
+                headerClass: 'bg-[#050b1a]/85 border-blue-400/15',
+                sidebarClass: 'bg-[#081229]/90 border-blue-400/15',
+                miniClass: 'bg-[#0c1938]/90 border-blue-400/20',
+                tabClass: 'bg-[#081229]/90 border-blue-400/15',
+                pillInactive: 'bg-white/10 text-blue-100/80 hover:bg-white/15',
+                mutedText: 'text-blue-200/70',
+                fullOverlay: 'from-[#102454] via-[#071126] to-[#040914]'
+            },
+            carbon: {
+                isLight: false,
+                bodyClass: 'bg-zinc-900 text-zinc-100 selection:bg-white/20',
+                headerClass: 'bg-zinc-900/85 border-white/10',
+                sidebarClass: 'bg-zinc-950/90 border-white/10',
+                miniClass: 'bg-zinc-800/90 border-white/15',
+                tabClass: 'bg-zinc-950/90 border-white/10',
+                pillInactive: 'bg-white/10 text-zinc-300 hover:bg-white/15',
+                mutedText: 'text-zinc-400',
+                fullOverlay: 'from-zinc-800 via-zinc-900 to-zinc-950'
+            },
+            sunsetGrad: {
+                isLight: false,
+                bodyClass: 'bg-gradient-to-br from-rose-950 via-stone-950 to-amber-950 text-amber-50 selection:bg-amber-500/30',
+                headerClass: 'bg-stone-950/80 border-amber-400/15',
+                sidebarClass: 'bg-stone-950/85 border-amber-400/15',
+                miniClass: 'bg-stone-900/90 border-amber-400/20',
+                tabClass: 'bg-stone-950/85 border-amber-400/15',
+                pillInactive: 'bg-white/10 text-amber-100/80 hover:bg-white/15',
+                mutedText: 'text-amber-200/70',
+                fullOverlay: 'from-rose-900 via-amber-950 to-stone-950'
+            },
+            oceanGrad: {
+                isLight: false,
+                bodyClass: 'bg-gradient-to-br from-cyan-950 via-slate-950 to-indigo-950 text-cyan-50 selection:bg-cyan-500/30',
+                headerClass: 'bg-slate-950/80 border-cyan-400/15',
+                sidebarClass: 'bg-slate-950/85 border-cyan-400/15',
+                miniClass: 'bg-slate-900/90 border-cyan-400/20',
+                tabClass: 'bg-slate-950/85 border-cyan-400/15',
+                pillInactive: 'bg-white/10 text-cyan-100/80 hover:bg-white/15',
+                mutedText: 'text-cyan-200/70',
+                fullOverlay: 'from-cyan-900 via-sky-950 to-slate-950'
+            },
+            violetGrad: {
+                isLight: false,
+                bodyClass: 'bg-gradient-to-br from-purple-950 via-slate-950 to-fuchsia-950 text-fuchsia-50 selection:bg-fuchsia-500/30',
+                headerClass: 'bg-slate-950/80 border-fuchsia-400/15',
+                sidebarClass: 'bg-slate-950/85 border-fuchsia-400/15',
+                miniClass: 'bg-slate-900/90 border-fuchsia-400/20',
+                tabClass: 'bg-slate-950/85 border-fuchsia-400/15',
+                pillInactive: 'bg-white/10 text-fuchsia-100/80 hover:bg-white/15',
+                mutedText: 'text-fuchsia-200/70',
+                fullOverlay: 'from-purple-900 via-fuchsia-950 to-slate-950'
+            },
+            emeraldGrad: {
+                isLight: false,
+                bodyClass: 'bg-gradient-to-br from-emerald-950 via-zinc-950 to-teal-950 text-emerald-50 selection:bg-emerald-500/30',
+                headerClass: 'bg-zinc-950/80 border-emerald-400/15',
+                sidebarClass: 'bg-zinc-950/85 border-emerald-400/15',
+                miniClass: 'bg-zinc-900/90 border-emerald-400/20',
+                tabClass: 'bg-zinc-950/85 border-emerald-400/15',
+                pillInactive: 'bg-white/10 text-emerald-100/80 hover:bg-white/15',
+                mutedText: 'text-emerald-200/70',
+                fullOverlay: 'from-emerald-900 via-teal-950 to-zinc-950'
+            }
+        };
+
+        const DEFAULT_STATIONS = [
+            // Nazionali & Principali Network
+            { id: 'rai1', name: 'Rai Radio 1', genre: 'News & Talk', city: 'Roma • Nazionale', abbr: 'RAI 1', color: 'from-blue-600 to-indigo-800', url: 'https://icestreaming.rai.it/1.mp3' },
+            { id: 'rai2', name: 'Rai Radio 2', genre: 'Pop & Hit', city: 'Roma • Nazionale', abbr: 'RAI 2', color: 'from-red-500 to-rose-700', url: 'https://icestreaming.rai.it/2.mp3' },
+            { id: 'rai3', name: 'Rai Radio 3', genre: 'Classica & Jazz', city: 'Roma • Cultura', abbr: 'RAI 3', color: 'from-emerald-600 to-teal-800', url: 'https://icestreaming.rai.it/3.mp3' },
+            { id: 'isoradio', name: 'Rai Isoradio', genre: 'News & Talk', city: 'Roma • Viabilità', abbr: 'ISO', color: 'from-sky-500 to-blue-700', url: 'https://icestreaming.rai.it/6.mp3' },
+            { id: 'raiclassica', name: 'Rai Radio 3 Classica', genre: 'Classica & Jazz', city: 'Roma • Filodiffusione', abbr: 'CLS', color: 'from-teal-600 to-emerald-900', url: 'https://icestreaming.rai.it/5.mp3' },
+            { id: 'raituttaitaliana', name: 'Rai Radio Tutta Italiana', genre: 'Nazionali', city: 'Roma • Musica Italiana', abbr: 'R-IT', color: 'from-green-600 to-emerald-900', url: 'https://icestreaming.rai.it/4.mp3' },
+            { id: 'raikids', name: 'Rai Radio Kids', genre: 'Pop & Hit', city: 'Roma • Famiglia', abbr: 'KIDS', color: 'from-amber-400 to-orange-600', url: 'https://icestreaming.rai.it/11.mp3' },
+            { id: 'raitec', name: 'Rai Radio Techete\'', genre: 'News & Talk', city: 'Roma • Archivio Storico', abbr: 'TEC', color: 'from-indigo-600 to-slate-900', url: 'https://icestreaming.rai.it/9.mp3' },
+            { id: 'railive', name: 'Rai Radio Live Napoli', genre: 'Pop & Hit', city: 'Napoli • Live', abbr: 'RLV', color: 'from-cyan-600 to-blue-900', url: 'https://icestreaming.rai.it/10.mp3' },
+            { id: 'grparlamento', name: 'Rai GR Parlamento', genre: 'News & Talk', city: 'Roma • Istituzioni', abbr: 'GRP', color: 'from-slate-600 to-blue-950', url: 'https://icestreaming.rai.it/7.mp3' },
+
+            { id: 'rtl1025', name: 'RTL 102.5', genre: 'Nazionali', city: 'Milano • Nazionale', abbr: 'RTL', color: 'from-blue-500 to-cyan-700', url: 'https://streamingv2.shoutcast.com/rtl-1025' },
+            { id: 'rtlbest', name: 'RTL 102.5 Best', genre: 'Pop & Hit', city: 'Milano • Grandi Classici', abbr: 'BEST', color: 'from-sky-500 to-indigo-800', url: 'https://streamingv2.shoutcast.com/rtl-1025-best' },
+            { id: 'rtlnapule', name: 'RTL 102.5 Napulè', genre: 'Pop & Hit', city: 'Napoli • Musica Napoletana', abbr: 'NAP', color: 'from-cyan-500 to-blue-800', url: 'https://streamingv2.shoutcast.com/rtl-1025-napule' },
+            { id: 'rtlbro', name: 'RTL 102.5 Bro & Sis', genre: 'Pop & Hit', city: 'Milano • Hit & Urban', abbr: 'BRO', color: 'from-indigo-500 to-purple-800', url: 'https://streamingv2.shoutcast.com/rtl-1025-bro-and-sis' },
+            { id: 'freccia', name: 'Radiofreccia', genre: 'Rock', city: 'Milano • Rock', abbr: 'FRC', color: 'from-stone-600 to-amber-800', url: 'https://streamingv2.shoutcast.com/radiofreccia' },
+            { id: 'zeta', name: 'Radio Zeta', genre: 'Nazionali', city: 'Milano • Generazione Futuro', abbr: 'ZETA', color: 'from-pink-500 to-rose-800', url: 'https://streamingv2.shoutcast.com/radio-zeta' },
+
+            { id: 'rds', name: 'RDS 100% Grandi Successi', genre: 'Pop & Hit', city: 'Roma • Nazionale', abbr: 'RDS', color: 'from-rose-500 to-pink-700', url: 'https://icstream.rds.radio/rds' },
+            { id: 'rdsrelax', name: 'RDS Relax', genre: 'Classica & Jazz', city: 'Roma • Soft & Acoustic', abbr: 'RLX', color: 'from-teal-600 to-cyan-900', url: 'https://stream.rds.radio/audio/relax.stream.aac/playlist.m3u8' },
+            { id: 'deejay', name: 'Radio Deejay', genre: 'Pop & Hit', city: 'Milano • Nazionale', abbr: 'DJ', color: 'from-fuchsia-500 to-purple-800', url: 'https://streamcdnm1-4c4b826cb872481892279057e4aa2169.msvdn.net/webradio/deejay/playlist.m3u8' },
+            { id: 'm2o', name: 'Radio m2o', genre: 'Dance', city: 'Roma • Dance & Club', abbr: 'M2O', color: 'from-lime-500 to-emerald-800', url: 'https://streamcdnm1-4c4b826cb872481892279057e4aa2169.msvdn.net/webradio/m2o/playlist.m3u8' },
+            { id: 'capital', name: 'Radio Capital', genre: 'Pop & Hit', city: 'Roma • Classici', abbr: 'CAP', color: 'from-amber-600 to-stone-800', url: 'https://streamcdnm1-4c4b826cb872481892279057e4aa2169.msvdn.net/webradio/capital/playlist.m3u8' },
+
+            { id: 'radio105', name: 'Radio 105', genre: 'Nazionali', city: 'Milano • Nazionale', abbr: '105', color: 'from-amber-500 to-orange-700', url: 'https://icecast.unitedradio.it/Radio105.mp3' },
+            { id: '105hits', name: 'Radio 105 Hits', genre: 'Pop & Hit', city: 'Milano • Top Hits', abbr: '105H', color: 'from-amber-500 to-red-700', url: 'https://icy.unitedradio.it/105Hits.mp3' },
+            { id: '105dance', name: 'Radio 105 Dance 90', genre: 'Dance', city: 'Milano • Eurodance', abbr: 'D90', color: 'from-fuchsia-600 to-violet-900', url: 'https://icy.unitedradio.it/105Dance90.mp3' },
+            { id: '105hiphop', name: 'Radio 105 Hip Hop & R\'n\'B', genre: 'Pop & Hit', city: 'Milano • Urban', abbr: '105U', color: 'from-purple-600 to-zinc-900', url: 'https://icy.unitedradio.it/105HipHopRnB.mp3' },
+            { id: '105zoo', name: 'Radio 105 Zoo Radio', genre: 'News & Talk', city: 'Milano • Comedy & Talk', abbr: 'ZOO', color: 'from-orange-500 to-amber-900', url: 'https://icy.unitedradio.it/105Zoo.mp3' },
+
+            { id: 'virgin', name: 'Virgin Radio', genre: 'Rock', city: 'Milano • Rock', abbr: 'VRG', color: 'from-red-600 to-neutral-900', url: 'https://icecast.unitedradio.it/Virgin.mp3' },
+            { id: 'rockfm', name: 'Virgin Radio Rock 80', genre: 'Rock', city: 'Milano • Classic Rock', abbr: 'R80', color: 'from-rose-600 to-zinc-900', url: 'https://icecast.unitedradio.it/VirginRock80.mp3' },
+            { id: 'rock2k', name: 'Virgin Radio Rock 2000', genre: 'Rock', city: 'Milano • Alternative Rock', abbr: 'R2K', color: 'from-red-700 to-slate-900', url: 'https://icecast.unitedradio.it/VirginRock2k.mp3' },
+            { id: 'virginhardrock', name: 'Virgin Radio Hard Rock', genre: 'Rock', city: 'Milano • Hard Rock', abbr: 'HRK', color: 'from-red-700 to-black', url: 'https://icecast.unitedradio.it/VirginHardRock.mp3' },
+            { id: 'virginrockclassics', name: 'Virgin Radio Rock Classics', genre: 'Rock', city: 'Milano • Classic Rock', abbr: 'RCL', color: 'from-orange-600 to-zinc-950', url: 'https://icecast.unitedradio.it/VirginRockClassics.mp3' },
+
+            { id: 'r101', name: 'R101', genre: 'Pop & Hit', city: 'Milano • Nazionale', abbr: 'R101', color: 'from-violet-600 to-indigo-900', url: 'https://icecast.unitedradio.it/r101' },
+            { id: 'r101relax', name: 'R101 Relax', genre: 'Classica & Jazz', city: 'Milano • Chill & Relax', abbr: 'RLX', color: 'from-indigo-500 to-sky-800', url: 'https://icy.unitedradio.it/R101Relax.mp3' },
+            { id: 'r10180', name: 'R101 Diretta 80', genre: 'Pop & Hit', city: 'Milano • Anni 80', abbr: '80s', color: 'from-pink-600 to-purple-900', url: 'https://icy.unitedradio.it/R10180.mp3' },
+            { id: 'montecarlo', name: 'Radio Monte Carlo', genre: 'Classica & Jazz', city: 'Milano • Gran Classe', abbr: 'RMC', color: 'from-amber-700 to-stone-900', url: 'https://icecast.unitedradio.it/RMC.mp3' },
+            { id: 'rmc2', name: 'RMC 2', genre: 'Classica & Jazz', city: 'Milano • Lounge & Chill', abbr: 'RMC2', color: 'from-stone-700 to-zinc-900', url: 'https://icecast.unitedradio.it/rmc2.mp3' },
+            { id: 'subasio', name: 'Radio Subasio', genre: 'Pop & Hit', city: 'Assisi • Centro Italia', abbr: 'SUB', color: 'from-teal-500 to-emerald-800', url: 'https://icy.unitedradio.it/Subasio.mp3' },
+            { id: 'radio24', name: 'Radio 24', genre: 'News & Talk', city: 'Milano • Il Sole 24 Ore', abbr: 'R24', color: 'from-orange-500 to-red-800', url: 'https://ilsole24ore-radio.akamaized.net/hls/live/2035301/radio24/playlist.m3u8' },
+            { id: 'kisskiss', name: 'Radio Kiss Kiss', genre: 'Pop & Hit', city: 'Napoli • Nazionale', abbr: 'KK', color: 'from-yellow-500 to-amber-700', url: 'https://ice07.fluidstream.net/KissKiss.mp3' },
+            { id: 'kisskissnapoli', name: 'Kiss Kiss Napoli', genre: 'Pop & Hit', city: 'Napoli • Campania', abbr: 'KKN', color: 'from-yellow-600 to-orange-800', url: 'https://ice07.fluidstream.net/KissKissNapoli.mp3' },
+            { id: 'radioitalia', name: 'Radio Italia', genre: 'Nazionali', city: 'Milano • Solo Musica Italiana', abbr: 'RIT', color: 'from-green-500 to-emerald-800', url: 'https://radioitaliasmi.akamaized.net/hls/live/2093565/radioitalia/playlist.m3u8' },
+            { id: 'discoradio', name: 'Discoradio', genre: 'Dance', city: 'Milano • Dance & Hit', abbr: 'DISC', color: 'from-fuchsia-500 to-pink-800', url: 'https://icy.unitedradio.it/Discoradio.mp3' },
+            { id: 'sportiva', name: 'Radio Sportiva', genre: 'News & Talk', city: 'Firenze • Sport Live', abbr: 'SPT', color: 'from-sky-600 to-blue-900', url: 'https://sportiva.fluidstream.eu/sportiva.mp3' },
+            { id: 'margherita', name: 'Radio Margherita', genre: 'Pop & Hit', city: 'Palermo • Musica Italiana', abbr: 'MRG', color: 'from-rose-500 to-red-800', url: 'https://shoutcast.radiomargherita.com/stream' },
+            { id: 'norba', name: 'Radionorba', genre: 'Pop & Hit', city: 'Bari • Puglia & Sud', abbr: 'NRB', color: 'from-cyan-600 to-blue-900', url: 'https://stream.radionorba.it/radionorba/mp3' },
+            { id: 'latte', name: 'Radio LatteMiele', genre: 'Pop & Hit', city: 'Bologna • Musica Italiana', abbr: 'LTM', color: 'from-amber-400 to-orange-700', url: 'https://ice06.fluidstream.net/LatteMiele.mp3' },
+            { id: 'puntoradio', name: 'Punto Radio', genre: 'Regionali', city: 'Cascina • Toscana', abbr: 'PTR', color: 'from-emerald-500 to-teal-800', url: 'https://puntoradio.fluidstream.eu/puntoradio.mp3' },
+            { id: 'lifegate', name: 'LifeGate Radio', genre: 'Classica & Jazz', city: 'Milano • Sostenibilità & Chill', abbr: 'LGF', color: 'from-lime-600 to-green-900', url: 'https://ice02.fluidstream.net/fluid02.mp3' },
+            { id: 'ibiza', name: 'Radio Ibiza', genre: 'Dance', city: 'Riccione • Club & House', abbr: 'IBZ', color: 'from-purple-500 to-fuchsia-800', url: 'https://ice04.fluidstream.net/ibiza.mp3' },
+            { id: 'radiobruno', name: 'Radio Bruno', genre: 'Pop & Hit', city: 'Carpi • Emilia & Toscana', abbr: 'BRN', color: 'from-red-500 to-rose-800', url: 'https://stream.radiobruno.it/radio-bruno.mp3' },
+            { id: 'radiobrunobrescia', name: 'Radio Bruno Brescia', genre: 'Pop & Hit', city: 'Brescia • Lombardia', abbr: 'BRB', color: 'from-orange-500 to-red-800', url: 'https://stream.radiobruno.it/radio-bruno-brescia.mp3' },
+            { id: 'radiomontecarlo2', name: 'RMC Jazz', genre: 'Classica & Jazz', city: 'Milano • Jazz', abbr: 'JAZZ', color: 'from-amber-800 to-neutral-950', url: 'https://icecast.unitedradio.it/RMCJazz.mp3' },
+            { id: 'radiomontecarlo80', name: 'RMC 80', genre: 'Pop & Hit', city: 'Milano • Anni 80', abbr: 'R80', color: 'from-indigo-600 to-purple-950', url: 'https://icecast.unitedradio.it/RMC80.mp3' },
+            { id: 'radiomontecarlo90', name: 'RMC 90', genre: 'Pop & Hit', city: 'Milano • Anni 90', abbr: 'R90', color: 'from-cyan-600 to-blue-950', url: 'https://icecast.unitedradio.it/RMC90.mp3' },
+            { id: 'radiomontecarloLove', name: 'RMC Love Songs', genre: 'Classica & Jazz', city: 'Milano • Love Songs', abbr: 'LOVE', color: 'from-rose-600 to-pink-950', url: 'https://icecast.unitedradio.it/RMCLoveSongs.mp3' },
+            { id: 'dimensionesuono', name: 'Dimensione Suono Soft', genre: 'Classica & Jazz', city: 'Roma • Relax & Lounge', abbr: 'DSS', color: 'from-sky-500 to-indigo-900', url: 'https://stream.dimensionesuonosoft.it/audio/dss.stream.aac/playlist.m3u8' },
+            { id: 'dimensionesuono2', name: 'Dimensione Suono Roma', genre: 'Pop & Hit', city: 'Roma • Lazio', abbr: 'DSR', color: 'from-blue-600 to-cyan-900', url: 'https://stream.dimensionesuonoroma.it/audio/dsr.stream.aac/playlist.m3u8' },
+            { id: 'ram102', name: 'RAM Power 102.7', genre: 'Dance', city: 'Roma • Lazio', abbr: 'RAM', color: 'from-violet-600 to-fuchsia-900', url: 'https://ram102.radioca.st/stream' },
+            { id: 'mambo', name: 'Mambo Radio', genre: 'Dance', city: 'Roma • Latin & Club', abbr: 'MMB', color: 'from-amber-500 to-rose-800', url: 'https://mambo.radioca.st/stream' },
+            { id: 'radiom2o', name: 'm2o Musica da Giostra', genre: 'Dance', city: 'Roma • Electronic', abbr: 'M2OG', color: 'from-emerald-500 to-cyan-900', url: 'https://streamcdnm1-4c4b826cb872481892279057e4aa2169.msvdn.net/webradio/m2o/playlist.m3u8' },
+            { id: 'radiolaguna', name: 'Radio Laguna', genre: 'Regionali', city: 'Venezia • Veneto', abbr: 'LGN', color: 'from-cyan-500 to-teal-800', url: 'https://stream.radiolaguna.it/laguna.mp3' },
+            { id: 'radiosorrriso', name: 'Radio Sorrriso', genre: 'Pop & Hit', city: 'Vicenza • Veneto', abbr: 'SRR', color: 'from-yellow-400 to-amber-700', url: 'https://stream.radiosorrriso.it/sorrriso.mp3' },
+            { id: 'radiopiterpan', name: 'Radio Piterpan', genre: 'Pop & Hit', city: 'Treviso • Veneto', abbr: 'PTP', color: 'from-sky-500 to-blue-800', url: 'https://stream.piterpan.it/piterpan.mp3' },
+            { id: 'radiobellla', name: 'Radio Bellla & Monella', genre: 'Pop & Hit', city: 'Treviso • Veneto', abbr: 'B&M', color: 'from-pink-500 to-rose-800', url: 'https://stream.belllaemonella.it/belllaemonella.mp3' },
+            { id: 'radiogioiosa', name: 'Radio Gioiosa', genre: 'Regionali', city: 'Gioiosa Marea • Sicilia', abbr: 'GIO', color: 'from-orange-500 to-amber-800', url: 'https://radiogioiosa.radioca.st/stream' },
+            { id: 'radiotouring', name: 'Radio Touring 104', genre: 'Pop & Hit', city: 'Catania • Sicilia', abbr: 'TRG', color: 'from-red-500 to-amber-800', url: 'https://stream.radiotouring.it/touring.mp3' },
+            { id: 'rmk', name: 'RMK Radio Messina', genre: 'Regionali', city: 'Messina • Sicilia', abbr: 'RMK', color: 'from-blue-500 to-indigo-900', url: 'https://rmk.radioca.st/stream' },
+            { id: 'radioviva', name: 'Radio VivaFM', genre: 'Pop & Hit', city: 'Torino • Piemonte', abbr: 'VIVA', color: 'from-emerald-500 to-green-900', url: 'https://stream.vivafm.it/vivafm.mp3' },
+            { id: 'radiogrp', name: 'GRP Televisione & Radio', genre: 'Regionali', city: 'Torino • Piemonte', abbr: 'GRP', color: 'from-indigo-500 to-blue-900', url: 'https://stream.grp.it/grp.mp3' },
+            { id: 'radiomania', name: 'Radio Mania', genre: 'Regionali', city: 'Genova • Liguria', abbr: 'MAN', color: 'from-purple-500 to-indigo-900', url: 'https://radiomania.radioca.st/stream' },
+            { id: 'babboleo', name: 'Radio Babboleo', genre: 'Pop & Hit', city: 'Genova • Liguria', abbr: 'BBL', color: 'from-teal-500 to-cyan-900', url: 'https://stream.babboleo.it/babboleo.mp3' },
+            { id: 'babboleoSuono', name: 'Babboleo Suono', genre: 'Classica & Jazz', city: 'Genova • Liguria', abbr: 'BSN', color: 'from-slate-600 to-zinc-900', url: 'https://stream.babboleo.it/suono.mp3' },
+            { id: 'radiocitta', name: 'Radio Città Fujiko', genre: 'News & Talk', city: 'Bologna • Emilia-Romagna', abbr: 'RCF', color: 'from-rose-600 to-stone-900', url: 'https://stream.radiorsc.it/fujiko.mp3' },
+            { id: 'radiosabrina', name: 'Radio Sabrina', genre: 'Pop & Hit', city: 'Latina • Lazio', abbr: 'SBR', color: 'from-fuchsia-500 to-purple-900', url: 'https://radiosabrina.radioca.st/stream' },
+            { id: 'radiomc2', name: 'Radio MC2', genre: 'Regionali', city: 'Caserta • Campania', abbr: 'MC2', color: 'from-amber-500 to-red-900', url: 'https://radiomc2.radioca.st/stream' },
+            { id: 'radiocrc', name: 'Radio CRC Targato Italia', genre: 'News & Talk', city: 'Napoli • Campania', abbr: 'CRC', color: 'from-blue-600 to-sky-900', url: 'https://stream.radiocrc.com/crc.mp3' },
+            { id: 'ciccio', name: 'Ciccio Riccio', genre: 'Pop & Hit', city: 'Bari • Puglia', abbr: 'CCR', color: 'from-orange-500 to-amber-900', url: 'https://stream.ciccioriccio.it/ciccioriccio.mp3' },
+            { id: 'radioselene', name: 'Radio Selene', genre: 'Pop & Hit', city: 'Lecce • Puglia', abbr: 'SLN', color: 'from-cyan-500 to-blue-900', url: 'https://stream.radioselene.it/selene.mp3' },
+            { id: 'radiosystem', name: 'Radio System', genre: 'Regionali', city: 'Cagliari • Sardegna', abbr: 'SYS', color: 'from-emerald-500 to-teal-900', url: 'https://radiosystem.radioca.st/stream' },
+            { id: 'radiolina', name: 'Radiolina', genre: 'Regionali', city: 'Cagliari • Sardegna', abbr: 'RDL', color: 'from-amber-400 to-orange-800', url: 'https://stream.radiolina.it/radiolina.mp3' },
+            { id: 'radiostudio54', name: 'Radio Studio 54 Network', genre: 'Pop & Hit', city: 'Locri • Calabria', abbr: 'S54', color: 'from-pink-500 to-rose-900', url: 'https://stream.studio54.it/studio54.mp3' },
+            { id: 'radioveronica', name: 'Radio Veronica One', genre: 'Pop & Hit', city: 'Trieste • Friuli-Venezia Giulia', abbr: 'VRO', color: 'from-violet-500 to-indigo-900', url: 'https://veronicaone.radioca.st/stream' },
+            { id: 'radiomercato', name: 'Radio Mercato', genre: 'News & Talk', city: 'Firenze • Toscana', abbr: 'MRC', color: 'from-green-600 to-emerald-950', url: 'https://radiomercato.radioca.st/stream' },
+            { id: 'controradio', name: 'Controradio', genre: 'News & Talk', city: 'Firenze • Toscana', abbr: 'CTR', color: 'from-red-600 to-zinc-900', url: 'https://stream.controradio.it/controradio.mp3' },
+            { id: 'radiobombetta', name: 'Radio Bombetta', genre: 'Regionali', city: 'Abruzzo • Diretta', abbr: 'BMB', color: 'from-yellow-500 to-red-800', url: 'https://radiobombetta.radioca.st/stream' },
+            { id: 'radiodelta1', name: 'Radio Delta 1', genre: 'Regionali', city: 'Abruzzo • Diretta', abbr: 'DLT', color: 'from-blue-500 to-cyan-900', url: 'https://stream.radiodelta1.it/delta1.mp3' }
+        ];
+
+        const state = {
+            stations: [...DEFAULT_STATIONS],
+            customStations: safeGetStorage('radio_it_custom', []),
+            cachedLocalStations: safeGetStorage('radio_it_local_cache', []),
+            deletedStationIds: safeGetStorage('radio_it_deleted_ids', []),
+            deletedStationsArchive: safeGetStorage('radio_it_deleted_archive', []),
+            urlOverrides: safeGetStorage('radio_it_url_overrides', {}),
+            favorites: safeGetStorage('radio_it_favs', ['rai1', 'rtl1025', 'deejay']),
+            theme: safeGetStorage('radio_it_theme', 'sky'),
+            bgTheme: safeGetStorage('radio_it_bg', 'navy'),
+            selectedCategory: 'Tutte',
+            searchQuery: '',
+            currentStation: null,
+            isPlaying: false,
+            isLoading: false,
+            hlsInstance: null,
+            connectTimeout: null,
+            apiLoaded: false,
+            apiOffset: 0,
+            currentRdsText: '',
+            nowPlayingTrack: null,
+            playbackSessionId: 0,
+            logoTapCount: 0,
+            logoTapTimer: null,
+            downloadUnlocked: false,
+            onlineSearchResults: [],
+            onlineSearchLoading: false
+        };
+
+        function getAllStations() {
+            const deletedSet = new Set(state.deletedStationIds || []);
+            const combined = [
+                ...(state.customStations || []),
+                ...(state.stations || []),
+                ...(state.cachedLocalStations || [])
+            ];
+            const seen = new Set();
+            return combined.filter(s => {
+                if (!s || !s.id || deletedSet.has(s.id) || seen.has(s.id)) return false;
+                seen.add(s.id);
+                return true;
+            });
+        }
+
+        function saveStationUrlUpdate(stationId, newUrl) {
+            if (!stationId || !newUrl) return;
+            state.urlOverrides[stationId] = newUrl;
+            safeSetStorage('radio_it_url_overrides', state.urlOverrides);
+
+            const applyUrl = (list) => {
+                if (!Array.isArray(list)) return;
+                list.forEach(item => {
+                    if (item && item.id === stationId) item.url = newUrl;
+                });
+            };
+            applyUrl(state.stations);
+            applyUrl(state.customStations);
+            applyUrl(state.cachedLocalStations);
+            safeSetStorage('radio_it_custom', state.customStations);
+            safeSetStorage('radio_it_local_cache', state.cachedLocalStations);
+        }
+
+        function deleteStation(stationId, e) {
+            if (e) e.stopPropagation();
+            if (!stationId) return;
+
+            const found = getAllStations().find(s => s.id === stationId);
+            if (!state.deletedStationIds.includes(stationId)) {
+                state.deletedStationIds.push(stationId);
+                safeSetStorage('radio_it_deleted_ids', state.deletedStationIds);
+            }
+            if (found && !state.deletedStationsArchive.some(item => item.id === stationId)) {
+                state.deletedStationsArchive.unshift({ ...found });
+                safeSetStorage('radio_it_deleted_archive', state.deletedStationsArchive);
+            }
+
+            if (state.currentStation && state.currentStation.id === stationId) {
+                cleanupStream();
+                state.currentStation = null;
+                state.isPlaying = false;
+                state.isLoading = false;
+                state.nowPlayingTrack = null;
+                updatePlayerUI();
+            }
+
+            updateTrashBadge();
+            renderStations();
+            showToast(found ? `"${found.name}" spostata nel cestino` : 'Emittente eliminata');
+        }
+
+        function restoreStationFromTrash(stationId) {
+            if (!stationId) return;
+            state.deletedStationIds = (state.deletedStationIds || []).filter(id => id !== stationId);
+            state.deletedStationsArchive = (state.deletedStationsArchive || []).filter(item => item.id !== stationId);
+            safeSetStorage('radio_it_deleted_ids', state.deletedStationIds);
+            safeSetStorage('radio_it_deleted_archive', state.deletedStationsArchive);
+            updateTrashBadge();
+            renderTrashModalList();
+            renderStations();
+            showToast('Emittente ripristinata');
+        }
+
+        function restoreAllStationsFromTrash() {
+            state.deletedStationIds = [];
+            state.deletedStationsArchive = [];
+            safeSetStorage('radio_it_deleted_ids', []);
+            safeSetStorage('radio_it_deleted_archive', []);
+            updateTrashBadge();
+            renderTrashModalList();
+            renderStations();
+            showToast('Tutte le emittenti ripristinate');
+        }
+
+        function updateTrashBadge() {
+            const count = (state.deletedStationsArchive && state.deletedStationsArchive.length)
+                ? state.deletedStationsArchive.length
+                : (state.deletedStationIds ? state.deletedStationIds.length : 0);
+            const badge = document.getElementById('trashMenuBadge');
+            if (badge) badge.textContent = String(count);
+        }
+
+        function renderTrashModalList() {
+            const container = document.getElementById('trashListContainer');
+            const restoreAllBtn = document.getElementById('restoreAllTrashBtn');
+            if (!container) return;
+
+            const archive = state.deletedStationsArchive || [];
+            if (restoreAllBtn) restoreAllBtn.disabled = archive.length === 0;
+
+            if (archive.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 rounded-2xl bg-white/5 border border-white/10">
+                        <p class="text-xs font-semibold text-zinc-300">Il cestino è vuoto</p>
+                        <p class="text-[11px] text-zinc-500 mt-1">Le emittenti eliminate appariranno qui.</p>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            archive.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between gap-2.5 p-2.5 rounded-2xl bg-white/5 border border-white/10';
+
+                const info = document.createElement('div');
+                info.className = 'min-w-0 flex-1';
+                info.innerHTML = `
+                    <p class="text-xs font-bold text-white truncate">${item.name || 'Emittente'}</p>
+                    <p class="text-[11px] text-zinc-400 truncate">${item.city || 'Italia'} • ${item.genre || 'Radio'}</p>
+                `;
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'px-3 py-1.5 rounded-full bg-white/10 hover:bg-[#0a84ff] text-white text-[11px] font-bold shrink-0 transition';
+                btn.textContent = 'Ripristina';
+                btn.onclick = () => restoreStationFromTrash(item.id);
+
+                row.appendChild(info);
+                row.appendChild(btn);
+                container.appendChild(row);
+            });
+        }
+
+        function updateIosDate() {
+            const el = document.getElementById('iosDateSubtitle');
+            if (!el) return;
+            try {
+                const now = new Date();
+                const formatted = now.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase();
+                el.textContent = formatted || 'DIRETTA STREAMING';
+            } catch (e) {
+                el.textContent = 'DIRETTA STREAMING';
+            }
+        }
+
+        function applyTheme() {
+            const t = THEMES[state.theme] || THEMES.sky;
+            const b = BG_THEMES[state.bgTheme] || BG_THEMES.navy;
+            const body = document.getElementById('appBody');
+            const header = document.getElementById('appHeader');
+            const sidebar = document.getElementById('macSidebar');
+            const mini = document.getElementById('miniPlayerBar');
+            const tabBar = document.getElementById('iosTabBar');
+            const brandLogoBtn = document.getElementById('brandLogoBtn');
+            const macLogoBtn = document.getElementById('macLogoBtn');
+            const fullOverlay = document.getElementById('fullPlayerOverlay');
+
+            body.className = `${b.bodyClass} min-h-screen flex flex-col md:flex-row transition-colors duration-300`;
+            header.className = `sticky top-0 z-20 ${b.headerClass} apple-vibrancy border-b px-4 sm:px-7 pt-3 pb-3 transition-colors duration-300`;
+            if (sidebar) sidebar.className = `hidden md:flex md:w-64 lg:w-72 shrink-0 flex-col justify-between ${b.sidebarClass} apple-vibrancy border-r p-4 sticky top-0 h-screen select-none`;
+            mini.className = `max-w-4xl mx-auto pointer-events-auto rounded-2xl ${b.miniClass} apple-vibrancy border shadow-2xl shadow-black/60 px-3 py-2 transition-colors duration-300`;
+            if (tabBar) tabBar.className = `md:hidden pointer-events-auto ${b.tabClass} apple-vibrancy border-t px-6 pt-2 pb-safe flex items-center justify-around`;
+
+            if (fullOverlay) {
+                fullOverlay.className = `hidden fixed inset-0 z-40 bg-gradient-to-b ${b.fullOverlay} ${b.isLight ? 'text-zinc-900' : 'text-white'} flex flex-col justify-between px-6 pt-3 pb-8 overflow-y-auto transition-colors duration-300`;
+            }
+
+            if (brandLogoBtn) brandLogoBtn.className = `md:hidden w-9 h-9 apple-squircle ${t.pillBg} shadow flex items-center justify-center shrink-0 active:scale-90 transition`;
+            if (macLogoBtn) macLogoBtn.className = `w-10 h-10 apple-squircle ${t.pillBg} shadow-lg flex items-center justify-center shrink-0 active:scale-90 transition`;
+
+            const liveBadge = document.getElementById('liveBadge');
+            if (liveBadge) liveBadge.className = `hidden items-center gap-1 px-1.5 py-0.5 rounded-full ${t.badgeBg} ${t.badgeText} text-[9px] font-bold`;
+
+            const fpStatus = document.getElementById('fpStatusText');
+            if (fpStatus) fpStatus.className = `font-bold tracking-wider uppercase ${t.badgeText}`;
+
+            document.querySelectorAll('#themeSwatches button').forEach(btn => {
+                const active = btn.dataset.theme === state.theme;
+                btn.classList.toggle('border-white', active);
+                btn.classList.toggle('scale-110', active);
+                btn.classList.toggle('border-transparent', !active);
+            });
+
+            document.querySelectorAll('#bgSwatches button').forEach(btn => {
+                const active = btn.dataset.bg === state.bgTheme;
+                btn.classList.toggle('ring-2', active);
+                btn.classList.toggle('ring-white', active);
+            });
+
+            renderCategories();
+            renderStations();
+            updateMacNavActive();
+            updateIosTabActive();
+        }
+
+        function renderCategories() {
+            const t = THEMES[state.theme] || THEMES.sky;
+            const b = BG_THEMES[state.bgTheme] || BG_THEMES.navy;
+            categoryBar.innerHTML = '';
+            CATEGORIES.forEach(cat => {
+                const active = state.selectedCategory === cat;
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = cat;
+                btn.className = `px-3.5 py-1.5 rounded-full text-xs font-semibold shrink-0 transition active:scale-95 ${
+                    active ? `${t.pillBg} ${t.pillText} shadow-sm` : b.pillInactive
+                }`;
+                btn.onclick = () => {
+                    state.selectedCategory = cat;
+                    renderCategories();
+                    renderStations();
+                    updateMacNavActive();
+                };
+                categoryBar.appendChild(btn);
+            });
+        }
+
+        function updateMacNavActive() {
+            const t = THEMES[state.theme] || THEMES.sky;
+            document.querySelectorAll('.mac-nav-btn').forEach(btn => {
+                const active = btn.dataset.nav === state.selectedCategory;
+                btn.className = `mac-nav-btn w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition ${
+                    active ? `${t.pillBg} ${t.pillText} shadow-sm` : 'hover:bg-white/10 opacity-85 hover:opacity-100'
+                }`;
+            });
+        }
+
+        function renderStations() {
+            const b = BG_THEMES[state.bgTheme] || BG_THEMES.navy;
+            const all = getAllStations();
+            const q = state.searchQuery.trim().toLowerCase();
+
+            const filtered = all.filter(s => {
+                const matchCat = state.selectedCategory === 'Tutte'
+                    ? true
+                    : state.selectedCategory === 'Preferiti'
+                        ? state.favorites.includes(s.id)
+                        : s.genre === state.selectedCategory;
+                const matchQuery = !q
+                    || (s.name && s.name.toLowerCase().includes(q))
+                    || (s.city && s.city.toLowerCase().includes(q))
+                    || (s.genre && s.genre.toLowerCase().includes(q))
+                    || (s.abbr && s.abbr.toLowerCase().includes(q));
+                return matchCat && matchQuery;
+            });
+
+            sectionTitle.textContent = q
+                ? 'Risultati Ricerca'
+                : (state.selectedCategory === 'Tutte' ? 'In Onda Adesso' : state.selectedCategory);
+            stationCount.textContent = String(filtered.length);
+            stationsGrid.innerHTML = '';
+
+            if (filtered.length === 0 && !q) {
+                stationsGrid.innerHTML = `
+                    <div class="text-center py-14 rounded-3xl bg-white/5 border border-white/10">
+                        <p class="font-semibold text-base mb-1">Nessuna emittente trovata</p>
+                        <p class="text-xs ${b.mutedText}">Prova a cambiare categoria o parola chiave.</p>
+                    </div>`;
+                return;
+            }
+
+            if (filtered.length === 0 && q.length < 2) {
+                stationsGrid.innerHTML = `
+                    <div class="text-center py-14 rounded-3xl bg-white/5 border border-white/10">
+                        <p class="font-semibold text-base mb-1">Nessuna emittente trovata</p>
+                        <p class="text-xs ${b.mutedText}">Digita almeno 2 lettere per cercare anche online.</p>
+                    </div>`;
+                return;
+            }
+
+            const cardSurface = b.isLight
+                ? 'bg-white/90 border-black/10 hover:bg-white shadow-sm'
+                : 'bg-[#0f1f42]/80 border-blue-400/15 hover:bg-[#142854]/90 shadow-md';
+            const badgeSurface = b.isLight
+                ? 'bg-black/5 text-zinc-700'
+                : 'bg-white/10 text-blue-100/85';
+
+            filtered.forEach(station => {
+                const isCurrent = state.currentStation && state.currentStation.id === station.id;
+                const isFav = state.favorites.includes(station.id);
+
+                const card = document.createElement('div');
+                card.className = `w-full rounded-2xl border ${cardSurface} px-3.5 py-3 flex items-center justify-between gap-3.5 cursor-pointer select-none transition duration-200 active:scale-[0.99] ${
+                    isCurrent ? 'ring-2 ring-white/80' : ''
+                }`;
+                card.onclick = () => playStation(station);
+
+                const logoBox = document.createElement('div');
+                logoBox.className = `w-14 h-14 apple-squircle bg-gradient-to-br ${station.color} flex items-center justify-center shrink-0 shadow relative overflow-hidden`;
+
+                if (isCurrent && state.isPlaying) {
+                    logoBox.innerHTML = `
+                        <div class="flex items-end gap-1 h-5">
+                            <span class="w-1 bg-white rounded-full eq-bar-1"></span>
+                            <span class="w-1 bg-white rounded-full eq-bar-2"></span>
+                            <span class="w-1 bg-white rounded-full eq-bar-3"></span>
+                        </div>`;
+                } else {
+                    const abbrSpan = document.createElement('span');
+                    abbrSpan.className = 'font-extrabold text-sm tracking-tight text-white drop-shadow text-center px-1 leading-tight';
+                    abbrSpan.textContent = station.abbr || 'FM';
+                    logoBox.appendChild(abbrSpan);
+                }
+
+                const infoBox = document.createElement('div');
+                infoBox.className = 'min-w-0 flex-1';
+
+                const nameEl = document.createElement('h3');
+                nameEl.className = 'font-bold text-[15px] leading-snug truncate';
+                nameEl.textContent = station.name;
+
+                const cityEl = document.createElement('p');
+                cityEl.className = `text-xs ${b.mutedText} truncate mt-0.5`;
+                cityEl.textContent = station.city || 'Italia';
+
+                const genreBadge = document.createElement('span');
+                genreBadge.className = `inline-block mt-1.5 px-2 py-0.5 rounded-md text-[10px] font-semibold ${badgeSurface}`;
+                genreBadge.textContent = station.genre;
+
+                infoBox.appendChild(nameEl);
+                infoBox.appendChild(cityEl);
+                infoBox.appendChild(genreBadge);
+
+                const actionsWrap = document.createElement('div');
+                actionsWrap.className = 'flex items-center gap-0.5 shrink-0';
+
+                const favBtn = document.createElement('button');
+                favBtn.type = 'button';
+                favBtn.className = `w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition active:scale-75 ${
+                    isFav ? 'text-rose-500' : `${b.mutedText} hover:opacity-100 opacity-70`
+                }`;
+                favBtn.title = isFav ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti';
+                favBtn.innerHTML = `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.1"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`;
+                favBtn.onclick = (e) => toggleFavorite(station.id, e);
+
+                const delBtn = document.createElement('button');
+                delBtn.type = 'button';
+                delBtn.className = `w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition active:scale-75 ${b.mutedText} opacity-50 hover:opacity-100 hover:text-rose-400`;
+                delBtn.title = 'Elimina emittente';
+                delBtn.innerHTML = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>`;
+                delBtn.onclick = (e) => deleteStation(station.id, e);
+
+                actionsWrap.appendChild(favBtn);
+                actionsWrap.appendChild(delBtn);
+
+                card.appendChild(logoBox);
+                card.appendChild(infoBox);
+                card.appendChild(actionsWrap);
+
+                stationsGrid.appendChild(card);
+            });
+
+            if (q.length >= 2) {
+                const onlineHeader = document.createElement('div');
+                onlineHeader.className = 'mt-4 pt-3 border-t border-white/10 flex items-center justify-between';
+                onlineHeader.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-sky-400">Risultati Online</span>
+                        ${state.onlineSearchLoading ? '<span class="text-[11px] text-zinc-400 animate-pulse">Ricerca in corso...</span>' : ''}
+                    </div>
+                    <span class="text-[11px] ${b.mutedText}">${state.onlineSearchResults.length} trovate</span>
+                `;
+                stationsGrid.appendChild(onlineHeader);
+
+                if (!state.onlineSearchLoading && state.onlineSearchResults.length === 0 && filtered.length === 0) {
+                    const emptyOnline = document.createElement('div');
+                    emptyOnline.className = 'text-center py-8 rounded-2xl bg-white/5 border border-white/10';
+                    emptyOnline.innerHTML = `<p class="text-xs ${b.mutedText}">Nessuna emittente trovata online per "${state.searchQuery.trim()}".</p>`;
+                    stationsGrid.appendChild(emptyOnline);
+                }
+
+                state.onlineSearchResults.forEach(onlineSt => {
+                    const alreadyAdded = getAllStations().some(s =>
+                        s.id === onlineSt.id || (s.url && s.url.toLowerCase() === onlineSt.url.toLowerCase())
+                    );
+                    const isCurrent = state.currentStation && state.currentStation.id === onlineSt.id;
+
+                    const row = document.createElement('div');
+                    row.className = `w-full rounded-2xl border ${cardSurface} px-3.5 py-3 flex items-center justify-between gap-3 cursor-pointer select-none transition duration-200 ${
+                        isCurrent ? 'ring-2 ring-white/80' : ''
+                    }`;
+                    row.onclick = () => playStation(onlineSt);
+
+                    const logoBox = document.createElement('div');
+                    logoBox.className = `w-12 h-12 apple-squircle bg-gradient-to-br ${onlineSt.color} flex items-center justify-center shrink-0 shadow`;
+                    const abbrSpan = document.createElement('span');
+                    abbrSpan.className = 'font-extrabold text-xs tracking-tight text-white drop-shadow text-center px-1';
+                    abbrSpan.textContent = onlineSt.abbr || 'FM';
+                    logoBox.appendChild(abbrSpan);
+
+                    const infoBox = document.createElement('div');
+                    infoBox.className = 'min-w-0 flex-1';
+                    const nameEl = document.createElement('h3');
+                    nameEl.className = 'font-bold text-[14px] leading-snug truncate';
+                    nameEl.textContent = onlineSt.name;
+                    const cityEl = document.createElement('p');
+                    cityEl.className = `text-xs ${b.mutedText} truncate mt-0.5`;
+                    cityEl.textContent = `${onlineSt.city} • ${onlineSt.genre}`;
+                    infoBox.appendChild(nameEl);
+                    infoBox.appendChild(cityEl);
+
+                    const addBtn = document.createElement('button');
+                    addBtn.type = 'button';
+                    addBtn.className = alreadyAdded
+                        ? 'px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold shrink-0'
+                        : 'px-3 py-1.5 rounded-full bg-[#0a84ff] hover:bg-sky-500 text-white text-xs font-bold shrink-0 shadow active:scale-95 transition';
+                    addBtn.textContent = alreadyAdded ? '✓ Salvata' : '+ Aggiungi';
+                    addBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        if (alreadyAdded) {
+                            showToast('Emittente già presente nella lista');
+                            return;
+                        }
+                        addOnlineStationToList(onlineSt);
+                    };
+
+                    row.appendChild(logoBox);
+                    row.appendChild(infoBox);
+                    row.appendChild(addBtn);
+                    stationsGrid.appendChild(row);
+                });
+            }
+        }
+
+        function toggleFavorite(stationId, e) {
+            if (e) e.stopPropagation();
+            const idx = state.favorites.indexOf(stationId);
+            if (idx >= 0) {
+                state.favorites.splice(idx, 1);
+                showToast('Rimossa dai preferiti');
+            } else {
+                state.favorites.push(stationId);
+                showToast('Aggiunta ai preferiti');
+            }
+            safeSetStorage('radio_it_favs', state.favorites);
+            renderStations();
+            updateFullPlayerFavoriteIcon();
+        }
+
+        function updateFullPlayerFavoriteIcon() {
+            const btn = document.getElementById('fpFavBtn');
+            if (!btn) return;
+            const isFav = state.currentStation && state.favorites.includes(state.currentStation.id);
+            btn.className = `w-10 h-10 rounded-full bg-white/10 hover:bg-white/15 flex items-center justify-center shrink-0 transition active:scale-90 ${
+                isFav ? 'text-rose-500' : 'text-zinc-300'
+            }`;
+            btn.innerHTML = `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.2"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`;
+        }
+
+        function updateIosTabActive() {
+            const t = THEMES[state.theme] || THEMES.sky;
+            const searchOpen = !mobileSearchWrap.classList.contains('hidden');
+            document.querySelectorAll('.ios-tab-btn').forEach(btn => {
+                const tab = btn.dataset.tab;
+                const active = (tab === 'cerca' && searchOpen)
+                    || (tab === 'preferiti' && !searchOpen && state.selectedCategory === 'Preferiti')
+                    || (tab === 'radio' && !searchOpen && state.selectedCategory !== 'Preferiti');
+                btn.className = `ios-tab-btn flex flex-col items-center gap-0.5 transition ${active ? t.tabActive : 'text-zinc-400'}`;
+            });
+        }
+
+        function decodeHtmlEntities(str) {
+            if (!str || !str.includes('&')) return str;
+            try {
+                const txt = document.createElement('textarea');
+                txt.innerHTML = str;
+                return txt.value;
+            } catch (e) {
+                return str;
+            }
+        }
+
+        function parseStreamTitle(rawStr, stationName) {
+            if (!rawStr) return null;
+            let cleaned = decodeHtmlEntities(String(rawStr))
+                .replace(/StreamTitle='([^']*)';?/i, '$1')
+                .replace(/<[^>]+>/g, ' ')
+                .replace(/[\x00-\x1F\x7F]/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+            if (!cleaned || cleaned.length < 3 || cleaned.length > 150) return null;
+            if (stationName && cleaned.toLowerCase() === stationName.toLowerCase()) return null;
+            if (/^(unknown|stream|live|diretta|on air|on-air|radio|mp3|aac|audio|n\/a|none|pubblicita|pubblicità|spot|jingle|musica|music|commercial|gr1|gr2|gr3|tg|meteo|viabilita|viabilità|notizie|news|pubblicita'|rds|rds 100% grandi successi|100%\s*grandi\s*successi|tutti\s*pazzi\s*per\s*rds|rds\s*relax|anna\s*pettirelli|sergio\s*friscia|rossella\s*brescia|ciccio\s*valenti|petra\s*loreggian|giovanni\s*vernía|giovanni\s*vernia|roberta\s*lanfranchi|claudio\s*guerrini|beppe\s*de\s*marco|max\s*pagani|mauro\s*casciari|melania\s*agrini|chiara\s*de\s*pisa|paolo\s*piva|filippo\s*ferraro|daniela\s*cappelletti|elisabetta\s*sacchi|giuditta\s*arecco|marco\s*lolli|francesca\s*romana\s*d'andrea|renzo\s*di\s*falco|danny\s*virgilio)$/i.test(cleaned)) return null;
+            if (stationName && cleaned.toLowerCase().startsWith(stationName.toLowerCase() + ' - ') && cleaned.length - stationName.length < 6) return null;
+
+            const parts = cleaned.split(/\s+-\s+|\s+–\s+|\s+—\s+|\s+\|\s+|\s+\/\s+/);
+            if (parts.length >= 2 && parts[0].trim() && parts[1].trim()) {
+                let p0 = parts[0].trim();
+                let p1 = parts.slice(1).join(' - ').trim();
+                const isRdsLabel = (s) => /^(rds|rds\s*100%|rds\s*100%\s*grandi\s*successi|100%\s*grandi\s*successi|rds\s*relax)$/i.test(s);
+                if (isRdsLabel(p0) || isRdsLabel(p1)) {
+                    const other = isRdsLabel(p0) ? p1 : p0;
+                    if (other.includes(' - ')) {
+                        const subParts = other.split(/\s+-\s+/);
+                        if (subParts[0].trim() && subParts[1].trim()) {
+                            return { artist: subParts[0].trim(), title: subParts.slice(1).join(' - ').trim(), raw: `${subParts[0].trim()} - ${subParts.slice(1).join(' - ').trim()}` };
+                        }
+                    }
+                    return null;
+                }
+                if (stationName && p0.toLowerCase() === stationName.toLowerCase()) {
+                    return { artist: '', title: p1, raw: p1 };
+                }
+                if (stationName && p1.toLowerCase() === stationName.toLowerCase()) {
+                    return { artist: '', title: p0, raw: p0 };
+                }
+                return {
+                    artist: p0,
+                    title: p1,
+                    raw: `${p0} - ${p1}`
+                };
+            }
+            return { artist: '', title: cleaned, raw: cleaned };
+        }
+
+        async function fetchWithCorsProxies(targetUrl, headersObj, signal) {
+            const hasCustomHeaders = headersObj && Object.keys(headersObj).length > 0;
+            const attempts = [
+                () => fetch(targetUrl, { headers: headersObj, signal }),
+                () => fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`, { headers: hasCustomHeaders ? headersObj : undefined, signal }),
+                () => fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`, { signal }),
+                () => fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`, { signal }),
+                () => fetch(`https://thingproxy.freeboard.io/fetch/${targetUrl}`, { headers: hasCustomHeaders ? headersObj : undefined, signal })
+            ];
+            for (const fn of attempts) {
+                try {
+                    const res = await fn();
+                    if (res && res.ok) return res;
+                } catch (e) {
+                    if (e && e.name === 'AbortError') throw e;
+                }
+            }
+            return null;
+        }
+
+        function extractSongFromJsonObject(obj, stationName) {
+            if (!obj || typeof obj !== 'object') return null;
+            const candidates = [
+                obj,
+                obj.song,
+                obj.track,
+                obj.onair,
+                obj.on_air,
+                obj.now_playing,
+                obj.nowPlaying,
+                obj.current,
+                obj.current_track,
+                obj.currentTrack,
+                obj.data,
+                obj.result,
+                obj.onair && obj.onair.song,
+                obj.on_air && obj.on_air.song,
+                obj.now_playing && obj.now_playing.song,
+                Array.isArray(obj) ? obj[0] : null,
+                Array.isArray(obj.data) ? obj.data[0] : null,
+                Array.isArray(obj.songs) ? obj.songs[0] : null,
+                Array.isArray(obj.playlist) ? obj.playlist[0] : null,
+                Array.isArray(obj.tracks) ? obj.tracks[0] : null
+            ].filter(Boolean);
+
+            for (const item of candidates) {
+                if (typeof item === 'string') {
+                    const p = parseStreamTitle(item, stationName);
+                    if (p) return p;
+                    continue;
+                }
+                if (typeof item !== 'object') continue;
+                const artist = item.artist || item.artista || item.author || item.autore || item.singer || item.artist_name || item.artistName || item.performer || '';
+                const title = item.title || item.titolo || item.song || item.song_title || item.songTitle || item.track_title || item.trackName || item.name || '';
+                const combined = item.text || item.full_title || item.nowplaying || item.currently_playing || item.song_full || '';
+
+                if (typeof artist === 'string' && typeof title === 'string' && artist.trim() && title.trim()) {
+                    const p = parseStreamTitle(`${artist.trim()} - ${title.trim()}`, stationName);
+                    if (p) return p;
+                }
+                if (typeof combined === 'string' && combined.trim()) {
+                    const p = parseStreamTitle(combined, stationName);
+                    if (p) return p;
+                }
+                if (typeof title === 'string' && title.trim() && title.toLowerCase() !== (stationName || '').toLowerCase()) {
+                    const p = parseStreamTitle(title, stationName);
+                    if (p) return p;
+                }
+            }
+            return null;
+        }
+
+        async function fetchNetworkApiMetadata(station, signal) {
+            if (!station) return null;
+            const id = (station.id || '').toLowerCase();
+            const nameLow = (station.name || '').toLowerCase();
+
+            // 1. RDS & canali RDS (solo endpoint ufficiali RDS, mai Radio Browser che restituisce brani vecchi/errati)
+            if (id.startsWith('rds') || nameLow.includes('rds')) {
+                const channelSlug = (id === 'rdsrelax' || nameLow.includes('relax')) ? 'rdsrelax' : 'rds';
+                const rdsUrls = [
+                    `https://cdn.rds.it/v2/onair/${channelSlug}.json?t=${Date.now()}`,
+                    `https://cdn.rds.it/onair/${channelSlug}.json?t=${Date.now()}`,
+                    'https://www.rds.it/wp-json/rds/v1/onair'
+                ];
+                for (const u of rdsUrls) {
+                    try {
+                        const r = await fetchWithCorsProxies(u, {}, signal);
+                        if (r && r.ok) {
+                            const j = await r.json();
+                            const list = Array.isArray(j) ? j : (Array.isArray(j && j.onair) ? j.onair : [j && (j.song || j.onair || j.data || j)]);
+                            for (const rawSong of list) {
+                                if (!rawSong || typeof rawSong !== 'object') continue;
+                                const typeStr = String(rawSong.type || rawSong.kind || rawSong.category || '').toLowerCase();
+                                if (typeStr && (typeStr.includes('program') || typeStr.includes('talk') || typeStr.includes('spot') || typeStr.includes('jingle'))) continue;
+                                const art = rawSong.artist || rawSong.artista || rawSong.singer || rawSong.author || '';
+                                const tit = rawSong.title || rawSong.titolo || rawSong.song_title || rawSong.song || '';
+                                if (art && tit && String(art).trim().length > 1 && String(tit).trim().length > 1) {
+                                    const parsed = parseStreamTitle(`${String(art).trim()} - ${String(tit).trim()}`, 'RDS');
+                                    if (parsed && parsed.artist && parsed.title) return parsed;
+                                }
+                            }
+                        }
+                    } catch (e) {}
+                }
+                return null;
+            }
+
+            // 2. Gruppo Mediaset / UnitedRadio (105, Virgin, R101, RMC, Subasio, Discoradio)
+            const unitedMap = [
+                { match: () => id === '105hits', host: 'www.105.net', streamKey: '105Hits', code: '105hits' },
+                { match: () => id === '105dance', host: 'www.105.net', streamKey: '105Dance90', code: '105dance90' },
+                { match: () => id === '105hiphop', host: 'www.105.net', streamKey: '105HipHopRnB', code: '105hiphoprnb' },
+                { match: () => id.includes('105') || nameLow.includes('105'), host: 'www.105.net', streamKey: 'Radio105', code: '105' },
+                { match: () => id === 'rockfm', host: 'www.virginradio.it', streamKey: 'VirginRock80', code: 'virginrock80' },
+                { match: () => id === 'rock2k', host: 'www.virginradio.it', streamKey: 'VirginRock2k', code: 'virginrock2k' },
+                { match: () => id === 'virginhardrock', host: 'www.virginradio.it', streamKey: 'VirginHardRock', code: 'virginhardrock' },
+                { match: () => id === 'virginrockclassics', host: 'www.virginradio.it', streamKey: 'VirginRockClassics', code: 'virginrockclassics' },
+                { match: () => id.includes('virgin') || id.startsWith('rock') || nameLow.includes('virgin'), host: 'www.virginradio.it', streamKey: 'Virgin', code: 'virgin' },
+                { match: () => id === 'r101relax', host: 'www.r101.it', streamKey: 'R101Relax', code: 'r101relax' },
+                { match: () => id === 'r10180', host: 'www.r101.it', streamKey: 'R10180', code: 'r10180' },
+                { match: () => id.includes('r101') || nameLow.includes('r101'), host: 'www.r101.it', streamKey: 'r101', code: 'r101' },
+                { match: () => id === 'rmc2', host: 'www.radiomontecarlo.net', streamKey: 'rmc2', code: 'rmc2' },
+                { match: () => id === 'radiomontecarlo2', host: 'www.radiomontecarlo.net', streamKey: 'RMCJazz', code: 'rmcjazz' },
+                { match: () => id === 'radiomontecarlo80', host: 'www.radiomontecarlo.net', streamKey: 'RMC80', code: 'rmc80' },
+                { match: () => id === 'radiomontecarlo90', host: 'www.radiomontecarlo.net', streamKey: 'RMC90', code: 'rmc90' },
+                { match: () => id === 'radiomontecarloLove', host: 'www.radiomontecarlo.net', streamKey: 'RMCLoveSongs', code: 'rmclovesongs' },
+                { match: () => id.includes('montecarlo') || id.startsWith('rmc') || nameLow.includes('monte carlo'), host: 'www.radiomontecarlo.net', streamKey: 'RMC', code: 'rmc' },
+                { match: () => id.includes('subasio') || nameLow.includes('subasio'), host: 'www.radiosubasio.it', streamKey: 'Subasio', code: 'subasio' },
+                { match: () => id.includes('discoradio') || nameLow.includes('discoradio'), host: 'www.discoradio.it', streamKey: 'Discoradio', code: 'discoradio' }
+            ];
+            const uEntry = unitedMap.find(x => x.match());
+            if (uEntry) {
+                const unitedUrls = [
+                    `https://icy.unitedradio.it/${uEntry.streamKey}.json`,
+                    `https://${uEntry.host}/api/onair`,
+                    `https://${uEntry.host}/api/onair.json`,
+                    `https://icy.unitedradio.it/${uEntry.code}.json`
+                ];
+                for (const apiU of unitedUrls) {
+                    try {
+                        const r = await fetchWithCorsProxies(apiU, {}, signal);
+                        if (r && r.ok) {
+                            const txt = await r.text();
+                            const j = JSON.parse(txt);
+                            const parsed = extractSongFromJsonObject(j, station.name);
+                            if (parsed) return parsed;
+                        }
+                    } catch (e) {}
+                }
+            }
+
+            // 3. Gruppo GEDI (Deejay, Capital, m2o)
+            const gediCode = (id === 'deejay' || nameLow.includes('deejay')) ? 'deejay'
+                : (id === 'capital' || nameLow.includes('capital')) ? 'capital'
+                : (id === 'm2o' || id === 'radiom2o' || nameLow.includes('m2o')) ? 'm2o' : null;
+            if (gediCode) {
+                const gediUrls = [
+                    `https://www.${gediCode}.it/api/onair/`,
+                    `https://www.${gediCode}.it/wp-json/gedi/v1/onair`,
+                    `https://www.${gediCode}.it/onair.json`
+                ];
+                for (const gu of gediUrls) {
+                    try {
+                        const r = await fetchWithCorsProxies(gu, {}, signal);
+                        if (r && r.ok) {
+                            const j = await r.json();
+                            const parsed = extractSongFromJsonObject(j, station.name);
+                            if (parsed) return parsed;
+                        }
+                    } catch (e) {}
+                }
+            }
+
+            // 4. Gruppo RTL 102.5 / Radiofreccia / Radio Zeta
+            const rtlCode = (id === 'rtlbest') ? 'rtl1025best'
+                : (id === 'rtlnapule') ? 'rtl1025napule'
+                : (id === 'rtlbro') ? 'rtl1025broandsis'
+                : (id.startsWith('rtl') || nameLow.includes('rtl 102.5')) ? 'rtl1025'
+                : (id === 'freccia' || nameLow.includes('freccia')) ? 'radiofreccia'
+                : (id === 'zeta' || nameLow.includes('zeta')) ? 'radiozeta' : null;
+            if (rtlCode) {
+                const rtlUrls = [
+                    `https://api.rtl.it/v1/onair/${rtlCode}`,
+                    `https://www.rtl.it/api/onair/${rtlCode}`,
+                    `https://api.rtl.it/v2/onair/${rtlCode}`
+                ];
+                for (const ru of rtlUrls) {
+                    try {
+                        const r = await fetchWithCorsProxies(ru, {}, signal);
+                        if (r && r.ok) {
+                            const j = await r.json();
+                            const parsed = extractSongFromJsonObject(j, station.name);
+                            if (parsed) return parsed;
+                        }
+                    } catch (e) {}
+                }
+            }
+
+            // 5. Radio Italia / Kiss Kiss / Radio Bruno / Norba / Dimensione Suono / Rai
+            if (id.startsWith('radioitalia') || nameLow.includes('radio italia')) {
+                for (const u of ['https://www.radioitalia.it/api/onair', 'https://www.radioitalia.it/wp-json/radioitalia/v1/onair']) {
+                    try {
+                        const r = await fetchWithCorsProxies(u, {}, signal);
+                        if (r && r.ok) {
+                            const parsed = extractSongFromJsonObject(await r.json(), station.name);
+                            if (parsed) return parsed;
+                        }
+                    } catch (e) {}
+                }
+            }
+            if (id.startsWith('kisskiss') || nameLow.includes('kiss kiss')) {
+                for (const u of ['https://kisskiss.it/api/onair', 'https://www.kisskiss.it/wp-json/kk/v1/onair']) {
+                    try {
+                        const r = await fetchWithCorsProxies(u, {}, signal);
+                        if (r && r.ok) {
+                            const parsed = extractSongFromJsonObject(await r.json(), station.name);
+                            if (parsed) return parsed;
+                        }
+                    } catch (e) {}
+                }
+            }
+            if (id.startsWith('radiobruno') || nameLow.includes('radio bruno')) {
+                try {
+                    const r = await fetchWithCorsProxies('https://www.radiobruno.it/wp-json/radiobruno/v1/onair', {}, signal);
+                    if (r && r.ok) {
+                        const parsed = extractSongFromJsonObject(await r.json(), station.name);
+                        if (parsed) return parsed;
+                    }
+                } catch (e) {}
+            }
+            if (id === 'norba' || nameLow.includes('radionorba')) {
+                try {
+                    const r = await fetchWithCorsProxies('https://radionorba.it/wp-json/radionorba/v1/onair', {}, signal);
+                    if (r && r.ok) {
+                        const parsed = extractSongFromJsonObject(await r.json(), station.name);
+                        if (parsed) return parsed;
+                    }
+                } catch (e) {}
+            }
+            if (id.startsWith('dimensionesuono') || nameLow.includes('dimensione suono')) {
+                const dsUrl = id === 'dimensionesuono2'
+                    ? 'https://cdn.rds.it/v2/onair/dsr.json'
+                    : 'https://cdn.rds.it/v2/onair/dss.json';
+                try {
+                    const r = await fetchWithCorsProxies(dsUrl, {}, signal);
+                    if (r && r.ok) {
+                        const parsed = extractSongFromJsonObject(await r.json(), station.name);
+                        if (parsed) return parsed;
+                    }
+                } catch (e) {}
+            }
+            if (id.startsWith('rai') || id === 'isoradio' || id === 'grparlamento') {
+                const raiChMap = {
+                    rai1: 'radio1',
+                    rai2: 'radio2',
+                    rai3: 'radio3',
+                    isoradio: 'isoradio',
+                    raiclassica: 'radio3classica',
+                    raituttaitaliana: 'radiotuttaitaliana',
+                    raikids: 'radiokids',
+                    raitec: 'radiotechete',
+                    railive: 'radiolivenapoli',
+                    grparlamento: 'grparlamento'
+                };
+                const ch = raiChMap[id];
+                if (ch) {
+                    try {
+                        const r = await fetchWithCorsProxies(`https://www.raiplaysound.it/palinsesto/onair/${ch}.json`, {}, signal);
+                        if (r && r.ok) {
+                            const j = await r.json();
+                            const prog = j && (j.currentItem || j.onair || j);
+                            const title = prog && (prog.name || prog.title || prog.program_title);
+                            const sub = prog && (prog.subtitle || prog.description || '');
+                            if (title) {
+                                const parsed = parseStreamTitle(sub ? `${title} - ${sub}` : title, station.name);
+                                if (parsed) return parsed;
+                            }
+                        }
+                    } catch (e) {}
+                }
+            }
+
+            // 6. Radio Browser API lookup (solo con corrispondenza stretta su URL/host o UUID, per evitare titoli sbagliati di emittenti omonime)
+            const mirrors = [
+                'https://de1.api.radio-browser.info',
+                'https://de2.api.radio-browser.info',
+                'https://fi1.api.radio-browser.info'
+            ];
+            const cleanName = encodeURIComponent((station.name || '').replace(/\(.*?\)/g, '').trim());
+            if (!cleanName) return null;
+
+            const stU = (station.url || '').toLowerCase();
+            const stHost = (() => { try { return new URL(station.url).hostname.replace(/^www\./, ''); } catch (e) { return ''; } })();
+            const uuidMatch = (station.id || '').match(/^(?:it|online)_([0-9a-f-]{32,36})$/i);
+
+            for (const base of mirrors) {
+                try {
+                    const lookupUrl = uuidMatch
+                        ? `${base}/json/stations/byuuid/${uuidMatch[1]}`
+                        : `${base}/json/stations/search?name=${cleanName}&hidebroken=true&limit=10`;
+                    const resp = await fetch(lookupUrl, { signal });
+                    if (!resp.ok) continue;
+                    const arr = await resp.json();
+                    if (!Array.isArray(arr) || arr.length === 0) continue;
+
+                    for (const item of arr) {
+                        const au = (item.url_resolved || item.url || '').toLowerCase();
+                        const exactUuid = uuidMatch && item.stationuuid && item.stationuuid.toLowerCase() === uuidMatch[1].toLowerCase();
+                        const sameHost = stHost && au.includes(stHost);
+                        const exactUrl = stU && au === stU;
+                        if (!exactUuid && !exactUrl && !sameHost) continue;
+                        const candidateTitle = (item && (item.lastsong || item.title)) || '';
+                        if (candidateTitle && candidateTitle.toLowerCase().trim() !== station.name.toLowerCase().trim()) {
+                            const parsed = parseStreamTitle(candidateTitle, station.name);
+                            if (parsed) return parsed;
+                        }
+                    }
+                    break;
+                } catch (e) {}
+            }
+            return null;
+        }
+
+        async function fetchServerStatusMetadata(streamUrl, stationName, signal) {
+            if (!streamUrl || !streamUrl.startsWith('http')) return null;
+            try {
+                const u = new URL(streamUrl);
+                const pathParts = u.pathname.split('/').filter(Boolean);
+                const statusEndpoints = [
+                    `${u.origin}/status-json.xsl`,
+                    `${u.origin}/7.html`,
+                    `${u.origin}/currentsong?sid=1`,
+                    `${u.origin}/played.html?sid=1`
+                ];
+                if (pathParts.length >= 2 && pathParts[0] === 'radio') {
+                    statusEndpoints.unshift(`${u.origin}/api/nowplaying/${pathParts[1]}`);
+                }
+                statusEndpoints.push(`${u.origin}/api/nowplaying`);
+
+                for (const statusUrl of statusEndpoints) {
+                    const r = await fetchWithCorsProxies(statusUrl, {}, signal);
+                    if (!r || !r.ok) continue;
+                    const text = await r.text();
+                    if (!text || text.length < 3) continue;
+
+                    if (statusUrl.includes('/api/nowplaying')) {
+                        try {
+                            const j = JSON.parse(text);
+                            const parsed = extractSongFromJsonObject(j, stationName);
+                            if (parsed) return parsed;
+                        } catch (e) {}
+                    } else if (statusUrl.endsWith('status-json.xsl')) {
+                        try {
+                            const j = JSON.parse(text);
+                            const src = j && j.icestats && j.icestats.source;
+                            const sources = Array.isArray(src) ? src : (src ? [src] : []);
+                            const pathHint = pathParts.pop() || '';
+                            const best = sources.find(s => s && s.listenurl && pathHint && s.listenurl.includes(pathHint))
+                                || sources.find(s => s && (s.title || s.yp_currently_playing))
+                                || sources[0];
+                            const rawTitle = best && (best.title || best.yp_currently_playing);
+                            if (rawTitle) {
+                                const parsed = parseStreamTitle(rawTitle, stationName);
+                                if (parsed) return parsed;
+                            }
+                        } catch (e) {}
+                    } else if (statusUrl.endsWith('7.html')) {
+                        const bodyMatch = text.match(/<body[^>]*>([^<]*)<\/body>/i);
+                        const csv = (bodyMatch ? bodyMatch[1] : text).split(',');
+                        if (csv.length >= 7) {
+                            const rawTitle = csv.slice(6).join(',').trim();
+                            const parsed = parseStreamTitle(rawTitle, stationName);
+                            if (parsed) return parsed;
+                        }
+                    } else if (statusUrl.includes('played.html')) {
+                        const tdMatches = Array.from(text.matchAll(/<td[^>]*>([^<]{4,120})<\/td>/gi)).map(m => m[1].trim());
+                        for (const cell of tdMatches) {
+                            if (cell.includes(' - ') && !/Current Song|Played @|Song Title/i.test(cell)) {
+                                const parsed = parseStreamTitle(cell, stationName);
+                                if (parsed) return parsed;
+                            }
+                        }
+                    } else {
+                        const parsed = parseStreamTitle(text, stationName);
+                        if (parsed) return parsed;
+                    }
+                }
+            } catch (e) {}
+            return null;
+        }
+
+        async function fetchIcyMetadata(streamUrl, stationName, signal) {
+            if (!streamUrl || !streamUrl.startsWith('http') || streamUrl.includes('.m3u8')) return null;
+            try {
+                const resp = await fetchWithCorsProxies(streamUrl, { 'Icy-MetaData': '1' }, signal);
+                if (!resp) return null;
+                const metaint = parseInt(resp.headers.get('icy-metaint') || '0', 10);
+                if (metaint > 0 && resp.body) {
+                    const reader = resp.body.getReader();
+                    let received = 0;
+                    const chunks = [];
+                    const maxBytes = Math.min(metaint + 4096, 131072);
+                    while (received < maxBytes) {
+                        const { done, value } = await reader.read();
+                        if (done || !value) break;
+                        chunks.push(value);
+                        received += value.length;
+                    }
+                    try { reader.cancel(); } catch (e) {}
+                    const full = new Uint8Array(received);
+                    let offset = 0;
+                    for (const c of chunks) { full.set(c, offset); offset += c.length; }
+                    if (full.length > metaint) {
+                        const metaLen = full[metaint] * 16;
+                        if (metaLen > 0 && full.length >= metaint + 1 + metaLen) {
+                            const metaBytes = full.slice(metaint + 1, metaint + 1 + metaLen);
+                            const metaStr = new TextDecoder('utf-8', { fatal: false }).decode(metaBytes);
+                            const match = metaStr.match(/StreamTitle='([^']*)'/i);
+                            if (match && match[1]) return parseStreamTitle(match[1], stationName);
+                        }
+                    }
+                } else if (resp.body) {
+                    const reader = resp.body.getReader();
+                    let total = 0;
+                    const parts = [];
+                    while (total < 65536) {
+                        const { done, value } = await reader.read();
+                        if (done || !value) break;
+                        parts.push(value);
+                        total += value.length;
+                        const merged = new Uint8Array(total);
+                        let off = 0;
+                        for (const p of parts) { merged.set(p, off); off += p.length; }
+                        const txt = new TextDecoder('utf-8', { fatal: false }).decode(merged);
+                        const match = txt.match(/StreamTitle='([^']*)'/i);
+                        if (match && match[1]) {
+                            try { reader.cancel(); } catch (e) {}
+                            return parseStreamTitle(match[1], stationName);
+                        }
+                    }
+                    try { reader.cancel(); } catch (e) {}
+                }
+            } catch (e) {}
+            return null;
+        }
+
+        function stopMetadataPolling() {
+            clearInterval(metadataPollTimer);
+            metadataPollTimer = null;
+            if (metadataAbortCtrl) {
+                try { metadataAbortCtrl.abort(); } catch (e) {}
+                metadataAbortCtrl = null;
+            }
+        }
+
+        async function loadMoreItalianStations(silent = false) {
+            const btnText = document.getElementById('loadMoreText');
+            if (btnText && !silent) btnText.textContent = 'Caricamento...';
+
+            const palettes = [
+                'from-sky-500 to-blue-800',
+                'from-rose-500 to-pink-800',
+                'from-emerald-500 to-teal-800',
+                'from-amber-500 to-orange-800',
+                'from-violet-500 to-purple-800',
+                'from-cyan-500 to-indigo-800'
+            ];
+
+            const mirrors = [
+                'https://de1.api.radio-browser.info',
+                'https://de2.api.radio-browser.info',
+                'https://fi1.api.radio-browser.info'
+            ];
+
+            let fetched = [];
+            const batchSize = 500;
+            const targetBatches = state.apiLoaded ? 1 : 3;
+
+            for (let b = 0; b < targetBatches; b++) {
+                let batchData = null;
+                const endpoint = b < 2
+                    ? `/json/stations/bycountrycodeexact/IT?hidebroken=true&order=clickcount&reverse=true&limit=${batchSize}&offset=${b * batchSize}`
+                    : `/json/stations/search?hidebroken=true&order=clickcount&reverse=true&limit=600&offset=${state.apiOffset}`;
+
+                for (const base of mirrors) {
+                    try {
+                        const resp = await fetch(`${base}${endpoint}`);
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            if (Array.isArray(data) && data.length > 0) {
+                                batchData = data;
+                                break;
+                            }
+                        }
+                    } catch (e) {}
+                }
+
+                if (Array.isArray(batchData) && batchData.length > 0) {
+                    fetched = fetched.concat(batchData);
+                    state.apiOffset += batchData.length;
+                } else {
+                    break;
+                }
+            }
+
+            if (fetched.length > 0) {
+                const existingNames = new Set(getAllStations().map(s => s.name.toLowerCase().trim()));
+                const existingUrls = new Set(getAllStations().map(s => (s.url || '').toLowerCase().trim()));
+                const deletedSet = new Set(state.deletedStationIds || []);
+                const added = [];
+
+                fetched.forEach((raw, idx) => {
+                    const name = (raw.name || '').trim();
+                    const url = (raw.url_resolved || raw.url || '').trim();
+                    const stationId = 'it_' + (raw.stationuuid || `${state.apiOffset}_${idx}`);
+                    if (!name || !url || !url.startsWith('http') || deletedSet.has(stationId)) return;
+                    if (existingNames.has(name.toLowerCase()) || existingUrls.has(url.toLowerCase())) return;
+                    existingNames.add(name.toLowerCase());
+                    existingUrls.add(url.toLowerCase());
+
+                    const tagsLower = (raw.tags || '').toLowerCase();
+                    let genre = raw.countrycode === 'IT' ? 'Regionali' : 'Pop & Hit';
+                    if (tagsLower.includes('rock') || tagsLower.includes('metal')) genre = 'Rock';
+                    else if (tagsLower.includes('dance') || tagsLower.includes('electronic') || tagsLower.includes('house')) genre = 'Dance';
+                    else if (tagsLower.includes('classical') || tagsLower.includes('jazz') || tagsLower.includes('lounge')) genre = 'Classica & Jazz';
+                    else if (tagsLower.includes('news') || tagsLower.includes('talk') || tagsLower.includes('sport')) genre = 'News & Talk';
+                    else if (tagsLower.includes('pop') || tagsLower.includes('hits')) genre = 'Pop & Hit';
+
+                    const abbr = name.replace(/[^A-Za-z0-9]/g, '').slice(0, 4).toUpperCase() || 'FM';
+                    const locLabel = (raw.state || raw.country || 'Italia').trim();
+                    added.push({
+                        id: stationId,
+                        name,
+                        genre,
+                        city: locLabel,
+                        abbr,
+                        color: palettes[idx % palettes.length],
+                        url
+                    });
+                });
+
+                if (added.length > 0) {
+                    state.cachedLocalStations = [...state.cachedLocalStations, ...added];
+                    safeSetStorage('radio_it_local_cache', state.cachedLocalStations);
+                    state.apiLoaded = true;
+                    renderStations();
+                    if (btnText) btnText.textContent = `+${state.cachedLocalStations.length} Radio`;
+                    if (!silent) showToast(`Caricate altre ${added.length} radio`);
+                    return;
+                }
+            }
+
+            state.apiLoaded = true;
+            if (btnText) {
+                btnText.textContent = state.cachedLocalStations.length > 0
+                    ? `+${state.cachedLocalStations.length} Radio`
+                    : '+ Radio Locali';
+            }
+        }
+
+        function addOnlineStationToList(station) {
+            if (!station) return;
+            const exists = getAllStations().some(s =>
+                s.id === station.id || (s.url && s.url.toLowerCase() === station.url.toLowerCase())
+            );
+            if (!exists) {
+                state.customStations.unshift({ ...station });
+                safeSetStorage('radio_it_custom', state.customStations);
+                showToast(`"${station.name}" aggiunta alla tua lista`);
+                renderStations();
+            }
+        }
+
+        function startMetadataPolling(station, sessionId) {
+            stopMetadataPolling();
+            if (!station) return;
+
+            const runCheck = async () => {
+                if (state.playbackSessionId !== sessionId) return;
+                if (!state.currentStation || state.currentStation.id !== station.id || !state.isPlaying) return;
+                if (metadataAbortCtrl) {
+                    try { metadataAbortCtrl.abort(); } catch (e) {}
+                }
+                metadataAbortCtrl = new AbortController();
+                const timeoutId = setTimeout(() => {
+                    try { metadataAbortCtrl.abort(); } catch (e) {}
+                }, 9000);
+
+                try {
+                    const sig = metadataAbortCtrl.signal;
+                    const applyIfBetter = (trackInfo) => {
+                        if (!trackInfo) return;
+                        if (state.playbackSessionId !== sessionId) return;
+                        if (!state.currentStation || state.currentStation.id !== station.id) return;
+                        const current = state.nowPlayingTrack;
+                        const hasArtistNow = Boolean(trackInfo.artist);
+                        const hadArtistBefore = Boolean(current && current.artist);
+                        if (!current || (hasArtistNow && !hadArtistBefore) || current.raw !== trackInfo.raw) {
+                            state.nowPlayingTrack = trackInfo;
+                            updatePlayerUI();
+                        }
+                    };
+
+                    const isRdsStation = (state.currentStation.id || '').toLowerCase().startsWith('rds')
+                        || (state.currentStation.name || '').toLowerCase().includes('rds');
+
+                    const tasks = [
+                        fetchNetworkApiMetadata(state.currentStation, sig).then(res => { applyIfBetter(res); return res; })
+                    ];
+                    if (!isRdsStation) {
+                        tasks.push(
+                            fetchServerStatusMetadata(state.currentStation.url, state.currentStation.name, sig).then(res => { applyIfBetter(res); return res; }),
+                            fetchIcyMetadata(state.currentStation.url, state.currentStation.name, sig).then(res => { applyIfBetter(res); return res; })
+                        );
+                    }
+
+                    await Promise.allSettled(tasks);
+                    clearTimeout(timeoutId);
+                } catch (e) {
+                    clearTimeout(timeoutId);
+                }
+            };
+
+            setTimeout(runCheck, 300);
+            metadataPollTimer = setInterval(runCheck, 10000);
+        }
+
+        function updateMediaSession() {
+            if (!('mediaSession' in navigator) || !state.currentStation) return;
+            try {
+                const track = state.nowPlayingTrack;
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: track ? track.title : state.currentStation.name,
+                    artist: track && track.artist ? `${track.artist} • ${state.currentStation.name}` : state.currentStation.name,
+                    album: state.currentStation.genre || 'Fausto Radio Web'
+                });
+            } catch (e) {}
+        }
+
+        function updatePlayerUI() {
+            const st = state.currentStation;
+            const pLogo = document.getElementById('playerLogo');
+            const pTitle = document.getElementById('playerTitle');
+            const pSub = document.getElementById('playerSubtitle');
+            const liveBadge = document.getElementById('liveBadge');
+            const playIcon = document.getElementById('playIcon');
+            const pauseIcon = document.getElementById('pauseIcon');
+            const fpPlayIcon = document.getElementById('fpPlayIcon');
+            const fpPauseIcon = document.getElementById('fpPauseIcon');
+            const artworkCard = document.getElementById('artworkCard');
+            const artworkAbbr = document.getElementById('artworkAbbr');
+            const fpStationName = document.getElementById('fpStationName');
+            const fpStationCity = document.getElementById('fpStationCity');
+            const fpFrequency = document.getElementById('fpFrequency');
+            const fpStatusText = document.getElementById('fpStatusText');
+            const rdsProgram = document.getElementById('rdsProgram');
+            const rdsTrack = document.getElementById('rdsTrack');
+            const ringOuter = document.getElementById('waveRingOuter');
+            const ringInner = document.getElementById('waveRingInner');
+            const liveBars = document.getElementById('playerLiveBars');
+
+            const activeNow = state.isPlaying || state.isLoading;
+            playIcon.classList.toggle('hidden', activeNow);
+            pauseIcon.classList.toggle('hidden', !activeNow);
+            fpPlayIcon.classList.toggle('hidden', activeNow);
+            fpPauseIcon.classList.toggle('hidden', !activeNow);
+
+            if (ringOuter) ringOuter.classList.toggle('wave-paused', !state.isPlaying);
+            if (ringInner) ringInner.classList.toggle('wave-paused', !state.isPlaying);
+            if (liveBars) liveBars.classList.toggle('opacity-100', state.isPlaying);
+
+            if (!st) {
+                if (pLogo) {
+                    pLogo.className = 'w-11 h-11 rounded-xl bg-gradient-to-br from-zinc-700 to-zinc-800 flex items-center justify-center font-bold text-xs text-white shrink-0 shadow';
+                    pLogo.textContent = 'FM';
+                }
+                if (pTitle) pTitle.textContent = 'Non in riproduzione';
+                if (pSub) pSub.textContent = 'Tocca una stazione per iniziare';
+                if (liveBadge) liveBadge.classList.add('hidden');
+                if (fpStatusText) fpStatusText.textContent = 'IN ATTESA';
+                if (rdsProgram) rdsProgram.textContent = 'Nessuna emittente selezionata';
+                if (rdsTrack) rdsTrack.textContent = 'Scegli una radio dalla lista';
+                return;
+            }
+
+            const track = state.nowPlayingTrack;
+
+            if (pLogo) {
+                pLogo.className = `w-11 h-11 rounded-xl bg-gradient-to-br ${st.color} flex items-center justify-center font-bold text-xs text-white shrink-0 shadow`;
+                pLogo.textContent = st.abbr;
+            }
+            if (pTitle) pTitle.textContent = st.name;
+            if (pSub) {
+                if (state.isLoading) {
+                    pSub.textContent = 'Connessione allo stream...';
+                } else if (track) {
+                    pSub.textContent = `♪ ${track.raw}`;
+                } else {
+                    pSub.textContent = `${st.city} • ${st.genre}`;
+                }
+            }
+            if (liveBadge) liveBadge.classList.toggle('hidden', !state.isPlaying);
+
+            if (artworkCard) {
+                artworkCard.className = `w-60 h-60 sm:w-68 sm:h-68 rounded-3xl bg-gradient-to-br ${st.color} shadow-2xl shadow-black/80 flex flex-col items-center justify-between p-5 relative overflow-hidden transition-transform duration-500 ${state.isPlaying ? 'scale-100 artwork-live' : 'scale-95'}`;
+            }
+            if (artworkAbbr) artworkAbbr.textContent = st.abbr;
+            if (fpStationName) fpStationName.textContent = st.name;
+            if (fpStationCity) fpStationCity.textContent = `${st.city} • ${st.genre}`;
+
+            const rds = RDS_PROGRAMS[st.id] || {
+                program: `${st.name} • Diretta`,
+                fm: `${st.genre.toUpperCase()} • STREAMING`,
+                slogans: [`${st.name} in diretta - ${st.city}`]
+            };
+            const slogan = state.currentRdsText || (rds.slogans && rds.slogans[0]) || `${st.name} Live`;
+
+            if (fpFrequency) fpFrequency.textContent = rds.fm;
+            if (fpStatusText) fpStatusText.textContent = state.isLoading ? '● CONNESSIONE IN CORSO' : (state.isPlaying ? '● IN DIRETTA' : '❚❚ IN PAUSA');
+
+            if (track) {
+                if (rdsProgram) rdsProgram.textContent = `♪ ${track.title}`;
+                if (rdsTrack) rdsTrack.textContent = track.artist ? `Artista: ${track.artist}` : rds.program;
+            } else {
+                if (rdsProgram) rdsProgram.textContent = rds.program;
+                if (rdsTrack) rdsTrack.textContent = state.isLoading ? 'Caricamento flusso audio...' : slogan;
+            }
+            updateFullPlayerFavoriteIcon();
+            updateMediaSession();
+        }
+
+        function cleanupStream() {
+            clearTimeout(state.connectTimeout);
+            state.connectTimeout = null;
+            stopMetadataPolling();
+            if (state.hlsInstance) {
+                try { state.hlsInstance.destroy(); } catch (e) {}
+                state.hlsInstance = null;
+            }
+            try { audio.pause(); } catch (e) {}
+            try { audio.removeAttribute('src'); audio.load(); } catch (e) {}
+        }
+
+        function updateClock() {
+            const el = document.getElementById('rdsClock');
+            if (!el) return;
+            try {
+                const now = new Date();
+                el.textContent = now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+            } catch (e) {}
+        }
+
+        function startSpectrumAnimation() {
+            clearInterval(spectrumTimer);
+            const bar = document.getElementById('fpSpectrumBar');
+            if (!bar) return;
+            const spans = Array.from(bar.querySelectorAll('span'));
+            spectrumTimer = setInterval(() => {
+                spans.forEach((sp, i) => {
+                    if (!state.isPlaying) {
+                        sp.style.height = '18%';
+                        return;
+                    }
+                    const wave = 28 + Math.round(Math.random() * 72);
+                    sp.style.height = `${wave}%`;
+                    sp.style.opacity = i % 2 === 0 ? '0.9' : '0.65';
+                });
+            }, 240);
+        }
+
+        async function resolveFallbackStreamUrl(station) {
+            const mirrors = [
+                'https://de1.api.radio-browser.info',
+                'https://de2.api.radio-browser.info',
+                'https://fi1.api.radio-browser.info'
+            ];
+            const cleanName = station.name.replace(/\(.*?\)/g, '').replace(/\s+/g, ' ').trim();
+            const q = encodeURIComponent(cleanName);
+            for (const base of mirrors) {
+                try {
+                    const resp = await fetch(`${base}/json/stations/search?name=${q}&hidebroken=true&order=clickcount&reverse=true&limit=12`);
+                    if (!resp.ok) continue;
+                    const list = await resp.json();
+                    if (!Array.isArray(list) || list.length === 0) continue;
+                    const itMatch = list.find(item => {
+                        const u = (item.url_resolved || item.url || '').trim();
+                        return item.countrycode === 'IT' && item.lastcheckok === 1 && u.startsWith('https://') && u !== station.url;
+                    });
+                    if (itMatch) return (itMatch.url_resolved || itMatch.url).trim();
+
+                    const anyHttpsMatch = list.find(item => {
+                        const u = (item.url_resolved || item.url || '').trim();
+                        return item.lastcheckok === 1 && u.startsWith('https://') && u !== station.url;
+                    }) || list.find(item => {
+                        const u = (item.url_resolved || item.url || '').trim();
+                        return u.startsWith('http') && u !== station.url;
+                    });
+                    if (anyHttpsMatch) return (anyHttpsMatch.url_resolved || anyHttpsMatch.url).trim();
+                } catch (e) {}
+            }
+            return null;
+        }
+
+        const DIRECT_STREAM_OVERRIDES = {
+            rai1: 'https://icestreaming.rai.it/1.mp3',
+            rai2: 'https://icestreaming.rai.it/2.mp3',
+            rai3: 'https://icestreaming.rai.it/3.mp3',
+            raituttaitaliana: 'https://icestreaming.rai.it/4.mp3',
+            raiclassica: 'https://icestreaming.rai.it/5.mp3',
+            isoradio: 'https://icestreaming.rai.it/6.mp3',
+            grparlamento: 'https://icestreaming.rai.it/7.mp3',
+            raitec: 'https://icestreaming.rai.it/9.mp3',
+            railive: 'https://icestreaming.rai.it/10.mp3',
+            raikids: 'https://icestreaming.rai.it/11.mp3',
+            rtl1025: 'https://streamingv2.shoutcast.com/rtl-1025',
+            rtlbest: 'https://streamingv2.shoutcast.com/rtl-1025-best',
+            rtlnapule: 'https://streamingv2.shoutcast.com/rtl-1025-napule',
+            rtlbro: 'https://streamingv2.shoutcast.com/rtl-1025-bro-and-sis',
+            freccia: 'https://streamingv2.shoutcast.com/radiofreccia',
+            zeta: 'https://streamingv2.shoutcast.com/radio-zeta',
+            radio105: 'https://icecast.unitedradio.it/Radio105.mp3',
+            virgin: 'https://icecast.unitedradio.it/Virgin.mp3',
+            r101: 'https://icecast.unitedradio.it/r101',
+            montecarlo: 'https://icecast.unitedradio.it/RMC.mp3',
+            rmc2: 'https://icecast.unitedradio.it/rmc2.mp3',
+            rockfm: 'https://icecast.unitedradio.it/VirginRock80.mp3',
+            rock2k: 'https://icecast.unitedradio.it/VirginRock2k.mp3',
+            virginhardrock: 'https://icecast.unitedradio.it/VirginHardRock.mp3',
+            virginrockclassics: 'https://icecast.unitedradio.it/VirginRockClassics.mp3',
+            subasio: 'https://icy.unitedradio.it/Subasio.mp3',
+            rds: 'https://icstream.rds.radio/rds',
+            deejay: 'https://streamcdnm1-4c4b826cb872481892279057e4aa2169.msvdn.net/webradio/deejay/playlist.m3u8',
+            m2o: 'https://streamcdnm1-4c4b826cb872481892279057e4aa2169.msvdn.net/webradio/m2o/playlist.m3u8',
+            capital: 'https://streamcdnm1-4c4b826cb872481892279057e4aa2169.msvdn.net/webradio/capital/playlist.m3u8',
+            radio24: 'https://ilsole24ore-radio.akamaized.net/hls/live/2035301/radio24/playlist.m3u8',
+            kisskiss: 'https://ice07.fluidstream.net/KissKiss.mp3'
+        };
+
+        function playStation(station, isFallbackAttempt = false) {
+            if (!station) return;
+            const savedOverride = state.urlOverrides[station.id];
+            const effectiveUrl = (!isFallbackAttempt && savedOverride)
+                ? savedOverride
+                : ((!isFallbackAttempt && DIRECT_STREAM_OVERRIDES[station.id]) ? DIRECT_STREAM_OVERRIDES[station.id] : station.url);
+            if (!effectiveUrl) return;
+
+            cleanupStream();
+            state.playbackSessionId += 1;
+            const sessionId = state.playbackSessionId;
+
+            state.currentStation = { ...station, url: effectiveUrl };
+            state.isLoading = true;
+            state.isPlaying = false;
+            state.currentRdsText = '';
+            state.nowPlayingTrack = null;
+
+            updatePlayerUI();
+            renderStations();
+
+            const tryFallbackOrFail = async () => {
+                if (state.playbackSessionId !== sessionId) return;
+                clearTimeout(state.connectTimeout);
+                if (!isFallbackAttempt) {
+                    showToast('Aggiornamento automatico stream...');
+                    const altUrl = await resolveFallbackStreamUrl({ ...station, url: effectiveUrl });
+                    if (state.playbackSessionId !== sessionId) return;
+                    if (altUrl && altUrl !== effectiveUrl && state.currentStation && state.currentStation.id === station.id) {
+                        saveStationUrlUpdate(station.id, altUrl);
+                        playStation({ ...station, url: altUrl }, true);
+                        return;
+                    }
+                }
+                state.isLoading = false;
+                state.isPlaying = false;
+                updatePlayerUI();
+                renderStations();
+                showToast('Stream non raggiungibile');
+            };
+
+            state.connectTimeout = setTimeout(() => {
+                if (state.playbackSessionId === sessionId && state.isLoading && state.currentStation && state.currentStation.id === station.id) {
+                    tryFallbackOrFail();
+                }
+            }, 6500);
+
+            const isHls = effectiveUrl.toLowerCase().includes('.m3u8');
+            const canNativeHls = isHls && audio.canPlayType('application/vnd.apple.mpegurl') !== '';
+
+            if (isHls && !canNativeHls && window.Hls && window.Hls.isSupported()) {
+                const hls = new window.Hls({ enableWorker: true, lowLatencyMode: true });
+                state.hlsInstance = hls;
+                hls.loadSource(effectiveUrl);
+                hls.attachMedia(audio);
+                hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
+                    if (state.playbackSessionId !== sessionId) return;
+                    audio.play().catch(tryFallbackOrFail);
+                });
+                hls.on(window.Hls.Events.FRAG_PARSING_METADATA, (_, data) => {
+                    if (state.playbackSessionId !== sessionId) return;
+                    if (!data || !data.samples || !state.currentStation) return;
+                    for (const sample of data.samples) {
+                        try {
+                            const txt = new TextDecoder('utf-8', { fatal: false }).decode(sample.data);
+                            const clean = txt.replace(/[^\x20-\x7E\xA0-\xFF]/g, ' ').replace(/\s+/g, ' ').trim();
+                            const parsed = parseStreamTitle(clean, state.currentStation.name);
+                            if (parsed) {
+                                state.nowPlayingTrack = parsed;
+                                updatePlayerUI();
+                                break;
+                            }
+                        } catch (e) {}
+                    }
+                });
+                hls.on(window.Hls.Events.ERROR, (_, data) => {
+                    if (state.playbackSessionId !== sessionId) return;
+                    if (data && data.fatal) {
+                        tryFallbackOrFail();
+                    }
+                });
+            } else {
+                audio.src = effectiveUrl;
+                audio.play().catch(tryFallbackOrFail);
+            }
+        }
+
+        function togglePlayPause() {
+            if (!state.currentStation) {
+                const list = getAllStations();
+                if (list.length > 0) playStation(list[0]);
+                return;
+            }
+            if (state.isPlaying || state.isLoading) {
+                cleanupStream();
+                state.isPlaying = false;
+                state.isLoading = false;
+                updatePlayerUI();
+                renderStations();
+            } else {
+                playStation(state.currentStation);
+            }
+        }
+
+        function playAdjacent(step) {
+            const list = getAllStations();
+            if (!list.length) return;
+            if (!state.currentStation) {
+                playStation(list[0]);
+                return;
+            }
+            const idx = list.findIndex(s => s.id === state.currentStation.id);
+            const nextIdx = idx >= 0 ? (idx + step + list.length) % list.length : 0;
+            playStation(list[nextIdx]);
+        }
+
+        audio.addEventListener('playing', () => {
+            clearTimeout(state.connectTimeout);
+            state.isLoading = false;
+            state.isPlaying = true;
+            if (state.currentStation) {
+                const rds = RDS_PROGRAMS[state.currentStation.id];
+                if (rds && rds.slogans && rds.slogans.length) {
+                    state.currentRdsText = rds.slogans[Math.floor(Math.random() * rds.slogans.length)];
+                }
+                startMetadataPolling(state.currentStation, state.playbackSessionId);
+            }
+            updatePlayerUI();
+            renderStations();
+        });
+
+        audio.addEventListener('error', () => {
+            if (!state.currentStation) return;
+            const failedStation = state.currentStation;
+            clearTimeout(state.connectTimeout);
+            resolveFallbackStreamUrl(failedStation).then((altUrl) => {
+                if (altUrl && altUrl !== failedStation.url && state.currentStation && state.currentStation.id === failedStation.id) {
+                    saveStationUrlUpdate(failedStation.id, altUrl);
+                    playStation({ ...failedStation, url: altUrl }, true);
+                    return;
+                }
+                state.isLoading = false;
+                state.isPlaying = false;
+                updatePlayerUI();
+                renderStations();
+                showToast('Flusso audio non disponibile');
+            }).catch(() => {
+                state.isLoading = false;
+                state.isPlaying = false;
+                updatePlayerUI();
+                renderStations();
+                showToast('Flusso audio non disponibile');
+            });
+        });
+
+        let onlineSearchTimer = null;
+        let onlineSearchAbort = null;
+
+        async function searchStationsOnline(query) {
+            const trimmed = (query || '').trim();
+            if (trimmed.length < 2) {
+                state.onlineSearchResults = [];
+                state.onlineSearchLoading = false;
+                renderStations();
+                return;
+            }
+
+            if (onlineSearchAbort) {
+                try { onlineSearchAbort.abort(); } catch (e) {}
+            }
+            onlineSearchAbort = new AbortController();
+            state.onlineSearchLoading = true;
+            renderStations();
+
+            const palettes = [
+                'from-sky-500 to-blue-800',
+                'from-rose-500 to-pink-800',
+                'from-emerald-500 to-teal-800',
+                'from-amber-500 to-orange-800',
+                'from-violet-500 to-purple-800',
+                'from-cyan-500 to-indigo-800'
+            ];
+
+            const mirrors = [
+                'https://de1.api.radio-browser.info',
+                'https://de2.api.radio-browser.info',
+                'https://fi1.api.radio-browser.info'
+            ];
+
+            const encoded = encodeURIComponent(trimmed);
+            let foundItems = null;
+
+            for (const base of mirrors) {
+                try {
+                    const resp = await fetch(
+                        `${base}/json/stations/search?name=${encoded}&hidebroken=true&order=clickcount&reverse=true&limit=25`,
+                        { signal: onlineSearchAbort.signal }
+                    );
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        if (Array.isArray(data)) {
+                            foundItems = data;
+                            break;
+                        }
+                    }
+                } catch (e) {
+                    if (e && e.name === 'AbortError') return;
+                }
+            }
+
+            if (state.searchQuery.trim() !== trimmed) return;
+
+            const existingUrls = new Set(getAllStations().map(s => (s.url || '').toLowerCase()));
+            const seenUrls = new Set();
+            const mapped = [];
+
+            if (Array.isArray(foundItems)) {
+                foundItems.sort((a, b) => {
+                    const aIt = a.countrycode === 'IT' ? 1 : 0;
+                    const bIt = b.countrycode === 'IT' ? 1 : 0;
+                    return bIt - aIt;
+                });
+
+                foundItems.forEach((raw, idx) => {
+                    const streamUrl = (raw.url_resolved || raw.url || '').trim();
+                    const cleanName = (raw.name || '').trim();
+                    if (!cleanName || !streamUrl || !streamUrl.startsWith('http')) return;
+                    const lowUrl = streamUrl.toLowerCase();
+                    if (existingUrls.has(lowUrl) || seenUrls.has(lowUrl)) return;
+                    seenUrls.add(lowUrl);
+
+                    const tagsLower = (raw.tags || '').toLowerCase();
+                    let genre = 'Regionali';
+                    if (tagsLower.includes('rock') || tagsLower.includes('metal')) genre = 'Rock';
+                    else if (tagsLower.includes('dance') || tagsLower.includes('electronic') || tagsLower.includes('house') || tagsLower.includes('edm')) genre = 'Dance';
+                    else if (tagsLower.includes('classical') || tagsLower.includes('jazz') || tagsLower.includes('lounge') || tagsLower.includes('chill')) genre = 'Classica & Jazz';
+                    else if (tagsLower.includes('news') || tagsLower.includes('talk') || tagsLower.includes('sport')) genre = 'News & Talk';
+                    else if (tagsLower.includes('pop') || tagsLower.includes('hits') || tagsLower.includes('top 40')) genre = 'Pop & Hit';
+
+                    const cleanAbbr = cleanName.replace(/[^A-Za-z0-9]/g, '').slice(0, 4).toUpperCase() || 'FM';
+                    mapped.push({
+                        id: 'online_' + (raw.stationuuid || `${Date.now()}_${idx}`),
+                        name: cleanName,
+                        genre,
+                        city: (raw.state || raw.country || 'Online').trim(),
+                        abbr: cleanAbbr,
+                        color: palettes[idx % palettes.length],
+                        url: streamUrl
+                    });
+                });
+            }
+
+            state.onlineSearchResults = mapped;
+            state.onlineSearchLoading = false;
+            renderStations();
+        }
+
+        function syncSearchQuery(val) {
+            state.searchQuery = val || '';
+            if (searchInput && searchInput.value !== state.searchQuery) searchInput.value = state.searchQuery;
+            if (macSearchInput && macSearchInput.value !== state.searchQuery) macSearchInput.value = state.searchQuery;
+            clearSearchBtn.classList.toggle('hidden', state.searchQuery.trim().length === 0);
+            renderStations();
+
+            clearTimeout(onlineSearchTimer);
+            if (state.searchQuery.trim().length >= 2) {
+                onlineSearchTimer = setTimeout(() => searchStationsOnline(state.searchQuery), 420);
+            } else {
+                state.onlineSearchResults = [];
+                state.onlineSearchLoading = false;
+            }
+        }
+
+        const fullOverlay = document.getElementById('fullPlayerOverlay');
+        function closeFullPlayer() {
+            fullOverlay.style.transform = '';
+            fullOverlay.style.opacity = '';
+            fullOverlay.classList.add('hidden');
+        }
+
+        document.getElementById('openFullPlayerArea').onclick = () => {
+            if (!state.currentStation) {
+                const list = getAllStations();
+                if (list.length > 0) playStation(list[0]);
+            }
+            fullOverlay.style.transform = '';
+            fullOverlay.style.opacity = '';
+            fullOverlay.classList.remove('hidden');
+            updatePlayerUI();
+        };
+        document.getElementById('closeFullPlayerBtn').onclick = closeFullPlayer;
+
+        let swipeStartX = 0;
+        let swipeStartY = 0;
+        let swipeTracking = false;
+
+        fullOverlay.addEventListener('touchstart', (e) => {
+            if (e.touches && e.touches.length === 1) {
+                swipeStartX = e.touches[0].clientX;
+                swipeStartY = e.touches[0].clientY;
+                swipeTracking = true;
+                fullOverlay.style.transition = 'none';
+            }
+        }, { passive: true });
+
+        fullOverlay.addEventListener('touchmove', (e) => {
+            if (!swipeTracking || !e.touches || e.touches.length !== 1) return;
+            const dx = e.touches[0].clientX - swipeStartX;
+            const dy = e.touches[0].clientY - swipeStartY;
+
+            if (Math.abs(dy) > Math.abs(dx)) {
+                fullOverlay.style.transform = `translateY(${dy * 0.45}px)`;
+                fullOverlay.style.opacity = String(Math.max(0.45, 1 - Math.abs(dy) / 520));
+            } else if (dx > 0) {
+                fullOverlay.style.transform = `translateX(${dx * 0.45}px)`;
+                fullOverlay.style.opacity = String(Math.max(0.45, 1 - dx / 450));
+            }
+        }, { passive: true });
+
+        fullOverlay.addEventListener('touchend', (e) => {
+            if (!swipeTracking) return;
+            swipeTracking = false;
+            fullOverlay.style.transition = 'transform 0.25s ease, opacity 0.25s ease';
+
+            const changed = e.changedTouches && e.changedTouches[0];
+            if (!changed) {
+                fullOverlay.style.transform = '';
+                fullOverlay.style.opacity = '';
+                return;
+            }
+
+            const dx = changed.clientX - swipeStartX;
+            const dy = changed.clientY - swipeStartY;
+
+            const swipeDown = dy > 75 && Math.abs(dy) > Math.abs(dx);
+            const swipeUp = dy < -75 && Math.abs(dy) > Math.abs(dx);
+            const swipeRight = dx > 80 && Math.abs(dx) > Math.abs(dy) * 1.15;
+
+            if (swipeDown || swipeUp || swipeRight) {
+                closeFullPlayer();
+            } else {
+                fullOverlay.style.transform = '';
+                fullOverlay.style.opacity = '';
+            }
+        });
+
+        document.querySelectorAll('#themeSwatches button').forEach(btn => {
+            btn.onclick = () => {
+                state.theme = btn.dataset.theme;
+                safeSetStorage('radio_it_theme', state.theme);
+                applyTheme();
+            };
+        });
+
+        document.querySelectorAll('#bgSwatches button').forEach(btn => {
+            btn.onclick = () => {
+                state.bgTheme = btn.dataset.bg;
+                safeSetStorage('radio_it_bg', state.bgTheme);
+                applyTheme();
+            };
+        });
+
+        const addRadioModal = document.getElementById('addRadioModal');
+        function openAddModal() {
+            appMenu.classList.add('hidden');
+            addRadioModal.classList.remove('hidden');
+            setTimeout(() => document.getElementById('customName').focus(), 50);
+        }
+        function closeAddModal() {
+            addRadioModal.classList.add('hidden');
+            document.getElementById('addRadioForm').reset();
+        }
+        document.getElementById('addRadioMenuBtn').onclick = openAddModal;
+        document.getElementById('macAddRadioBtn').onclick = openAddModal;
+        document.getElementById('closeAddModal').onclick = closeAddModal;
+        document.getElementById('cancelAddModal').onclick = closeAddModal;
+
+        const trashModal = document.getElementById('trashModal');
+        function openTrashModal() {
+            appMenu.classList.add('hidden');
+            renderTrashModalList();
+            trashModal.classList.remove('hidden');
+        }
+        function closeTrashModal() {
+            trashModal.classList.add('hidden');
+        }
+        document.getElementById('trashMenuBtn').onclick = openTrashModal;
+        document.getElementById('closeTrashModal').onclick = closeTrashModal;
+        document.getElementById('doneTrashModalBtn').onclick = closeTrashModal;
+        document.getElementById('restoreAllTrashBtn').onclick = restoreAllStationsFromTrash;
+
+        document.getElementById('addRadioForm').onsubmit = (e) => {
+            e.preventDefault();
+            const name = document.getElementById('customName').value.trim();
+            const url = document.getElementById('customUrl').value.trim();
+            const genre = document.getElementById('customGenre').value;
+            if (!name || !url) return;
+
+            const abbr = name.replace(/[^A-Za-z0-9]/g, '').slice(0, 4).toUpperCase() || 'FM';
+            const newSt = {
+                id: 'custom_' + Date.now(),
+                name,
+                url,
+                genre,
+                city: 'Personalizzata',
+                abbr,
+                color: 'from-sky-500 to-indigo-700'
+            };
+            state.customStations.unshift(newSt);
+            safeSetStorage('radio_it_custom', state.customStations);
+            closeAddModal();
+            renderStations();
+            showToast(`Aggiunta "${name}"`);
+        };
+
+        const appMenu = document.getElementById('appMenu');
+        document.getElementById('menuBtn').onclick = (e) => {
+            e.stopPropagation();
+            updateTrashBadge();
+            appMenu.classList.toggle('hidden');
+        };
+        document.addEventListener('click', (e) => {
+            if (!appMenu.classList.contains('hidden') && !appMenu.contains(e.target) && e.target.id !== 'menuBtn') {
+                appMenu.classList.add('hidden');
+            }
+        });
+
+        if (searchInput) searchInput.addEventListener('input', (e) => syncSearchQuery(e.target.value));
+        if (macSearchInput) macSearchInput.addEventListener('input', (e) => syncSearchQuery(e.target.value));
+
+        clearSearchBtn.onclick = () => {
+            syncSearchQuery('');
+            if (searchInput) searchInput.focus();
+        };
+
+        document.getElementById('closeSearchBarBtn').onclick = () => {
+            mobileSearchWrap.classList.add('hidden');
+            syncSearchQuery('');
+            updateIosTabActive();
+        };
+
+        document.querySelectorAll('.mac-nav-btn').forEach(btn => {
+            btn.onclick = () => {
+                state.selectedCategory = btn.dataset.nav;
+                renderCategories();
+                renderStations();
+                updateMacNavActive();
+                updateIosTabActive();
+            };
+        });
+
+        document.querySelectorAll('.ios-tab-btn').forEach(btn => {
+            btn.onclick = () => {
+                const tab = btn.dataset.tab;
+                if (tab === 'radio') {
+                    mobileSearchWrap.classList.add('hidden');
+                    state.selectedCategory = 'Tutte';
+                } else if (tab === 'preferiti') {
+                    mobileSearchWrap.classList.add('hidden');
+                    state.selectedCategory = 'Preferiti';
+                } else if (tab === 'cerca') {
+                    mobileSearchWrap.classList.remove('hidden');
+                    if (searchInput) {
+                        searchInput.focus();
+                        searchInput.click();
+                    }
+                }
+                renderCategories();
+                renderStations();
+                updateMacNavActive();
+                updateIosTabActive();
+            };
+        });
+
+        document.getElementById('playPauseBtn').onclick = togglePlayPause;
+        document.getElementById('fpPlayPauseBtn').onclick = togglePlayPause;
+        document.getElementById('prevBtn').onclick = () => playAdjacent(-1);
+        document.getElementById('fpPrevBtn').onclick = () => playAdjacent(-1);
+        document.getElementById('nextBtn').onclick = () => playAdjacent(1);
+        document.getElementById('fpNextBtn').onclick = () => playAdjacent(1);
+        document.getElementById('loadMoreApiBtn').onclick = () => loadMoreItalianStations(false);
+
+        document.getElementById('fpFavBtn').onclick = () => {
+            if (state.currentStation) toggleFavorite(state.currentStation.id);
+        };
+
+        document.getElementById('fpDeleteBtn').onclick = () => {
+            if (state.currentStation) {
+                const idToDelete = state.currentStation.id;
+                closeFullPlayer();
+                deleteStation(idToDelete);
+            }
+        };
+
+        function handleLogoSecretTap() {
+            state.logoTapCount++;
+            clearTimeout(state.logoTapTimer);
+            state.logoTapTimer = setTimeout(() => { state.logoTapCount = 0; }, 1600);
+            if (state.logoTapCount >= 5) {
+                state.logoTapCount = 0;
+                state.downloadUnlocked = true;
+                document.getElementById('downloadSection').classList.remove('hidden');
+                showToast('Download HTML sbloccato nel menu');
+            }
+        }
+        document.getElementById('brandLogoBtn').onclick = handleLogoSecretTap;
+        document.getElementById('macLogoBtn').onclick = handleLogoSecretTap;
+
+        document.getElementById('downloadHtmlBtn').onclick = () => {
+            try {
+                const htmlContent = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+                const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'FaustoRadio.html';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+                showToast('Scaricato FaustoRadio.html');
+            } catch (e) {
+                showToast('Impossibile scaricare il file');
+            }
+        };
+
+        updateIosDate();
+        updateClock();
+        updateTrashBadge();
+        setInterval(updateClock, 30000);
+        startSpectrumAnimation();
+        applyTheme();
+        updatePlayerUI();
+
+        setTimeout(() => {
+            if (!state.apiLoaded) {
+                loadMoreItalianStations(true).catch(() => {});
+            }
+        }, 300);
+    </script>
+</body>
+</html>
